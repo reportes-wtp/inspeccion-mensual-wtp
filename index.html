@@ -157,7 +157,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-vis
     <div class="g">
       <div class="full"><label>Trabajadores</label><div id="trabl"></div><button class="btn" id="addTrab" type="button">+ Agregar trabajador</button></div>
       <div class="full"><label for="sup">Responsable</label><select id="sup">
-        <option value="ENRIQUE CORTEZ">ENRIQUE CORTEZ – SUPERINTENDENTE DE MANTENIMIENTO</option>
+        <option value="ENRIQUE CORTES">ENRIQUE CORTES – SUPERINTENDENTE DE MANTENIMIENTO</option>
         <option value="JUAN CAMPOS">JUAN CAMPOS – SUPERVISOR GENERAL DE MANTENIMIENTO</option>
         <option value="JAVIER FRY">JAVIER FRY – GERENTE DE EQUIPOS</option></select></div>
       <div class="full"><label for="mat">Materiales usados</label><textarea id="mat" style="min-height:60px"></textarea></div>
@@ -198,7 +198,7 @@ const SHEET_URL='https://script.google.com/macros/s/AKfycbzT-Gbq3VIe42uPkzlYExCE
 const MAX=200,PER=6,K='insp_';
 const PLANTILLA=['INSPECCIÓN DE MOTOR (FUGAS, NIVELES, FAJAS, MANGUERAS).','INSPECCIÓN DE SISTEMA DE REFRIGERACIÓN.','INSPECCIÓN DE SISTEMA HIDRÁULICO (FUGAS, MANGUERAS, CILINDROS).','INSPECCIÓN DE SISTEMA ELÉCTRICO (BATERÍAS, LUCES, ALARMA DE RETROCESO).','INSPECCIÓN DE TRANSMISIÓN Y TREN DE FUERZA.','INSPECCIÓN DE FRENOS Y DIRECCIÓN.','INSPECCIÓN DE SUSPENSIÓN Y NEUMÁTICOS.','INSPECCIÓN DE ESTRUCTURA Y CHASIS.','INSPECCIÓN DE CABINA Y DISPOSITIVOS DE SEGURIDAD (EXTINTOR, CINTURÓN, ESPEJOS, CLAXON).','INSPECCIÓN DE IMPLEMENTOS Y ACCESORIOS.','REVISIÓN DE DOCUMENTACIÓN (SOAT, RTV, PÓLIZA).'].join('\n');
 const F=['trabsel','trabajo','equipo','bien','horo','estado','frente','unidad','tipo','ubic','desc','fini','hini','ffin','hfin','sup','mat','eqest'];
-const CARGO={'ENRIQUE CORTEZ':'SUPERINTENDENTE DE MANTENIMIENTO','JUAN CAMPOS':'SUPERVISOR GENERAL DE MANTENIMIENTO','JAVIER FRY':'GERENTE DE EQUIPOS'};
+const CARGO={'ENRIQUE CORTES':'SUPERINTENDENTE DE MANTENIMIENTO','JUAN CAMPOS':'SUPERVISOR GENERAL DE MANTENIMIENTO','JAVIER FRY':'GERENTE DE EQUIPOS'};
 const TIPO_DE=s=>/DESMOVILIZ/.test(s)?'DESMOVILIZACION':/INGRESO/.test(s)?'INGRESO':/MENSUAL/.test(s)?'MENSUAL':/TRIMESTRAL/.test(s)?'TRIMESTRAL':/DIARIA/.test(s)?'DIARIA':null;
 const $=id=>document.getElementById(id);
 let photos=[],uid=0,mode='cover',busy=false,lastPdf=null,otId='',obs=[],falt=[],trabs=[''],master=MASTER_DEF;
@@ -272,7 +272,7 @@ function loadDraft(){let d={};try{d=JSON.parse(store.get('draft')||'{}')}catch(e
   for(const k of F)if(d[k]!=null&&$(k))$(k).value=d[k];
   obs=Array.isArray(d.obs)?d.obs:[];falt=Array.isArray(d.falt)?d.falt:[];trabs=Array.isArray(d.trabs)&&d.trabs.length?d.trabs:[''];otId=d.id||newId();
   if(!d.tipo){const tp=TIPO_DE($('trabsel').value);if(tp)$('tipo').value=tp}
-  if(!CARGO[$('sup').value])$('sup').value='ENRIQUE CORTEZ';
+  if(!CARGO[$('sup').value])$('sup').value='ENRIQUE CORTES';
   if(!d.desc)$('desc').value=PLANTILLA;
   if(d.mat==null||d.mat==='')$('mat').value='NO APLICA';
   if(!$('fini').value)$('fini').value=today();if(!$('ffin').value)$('ffin').value=$('fini').value;
