@@ -87,6 +87,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-vis
 .ft{display:grid;grid-template-columns:minmax(0,2fr) 90px minmax(0,2fr) 44px;gap:8px;padding:10px;border:1px solid var(--line);border-radius:8px;margin-bottom:10px;align-items:end}
 .ft .x{width:44px;padding:0}
 @media(max-width:560px){.ft{grid-template-columns:minmax(0,1fr) 90px}.ft .c{grid-column:1/2}}
+.ver{text-align:center;font-size:12px;line-height:1.6;color:var(--mut);opacity:.8;margin:24px 0 8px;letter-spacing:.02em}
 .dlg{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;padding:16px;z-index:9}
 .dlg.on{display:flex}
 .dlg div{background:var(--card);border-radius:12px;padding:20px;max-width:380px}
@@ -97,7 +98,6 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-vis
 <header class="top">
   <div class="brand"><img id="lb" alt="Bechtel"><img id="lp" alt="PEMS"><button class="btn" id="nueva" type="button">Nueva inspección</button></div>
   <h1>INSPECCIÓN DE EQUIPOS</h1>
-  <p style="margin:2px 0 0;font-size:13px;opacity:.75">Versión 22-11-2026 (3) · fotos a Drive rápido</p>
   <p>Llena los datos, observaciones y faltantes, y agrega las fotos. Sale un solo PDF: OT + reporte fotográfico.</p>
 </header>
 <main>
@@ -180,6 +180,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-vis
     <div id="grid"></div>
     <div class="fname">Archivo: <b id="fn">—</b></div>
   </section>
+  <footer class="ver">Inspección de Equipos · v1.3.1<br>Bechtel · Yanacocha WTP</footer>
 </main>
 <div class="bar"><div class="in">
   <div class="prog" id="prog"><i></i></div>
