@@ -411,19 +411,19 @@ function annexPage(doc){
 // ===== Formato OT original (Excel): marco 86–525 pt, letra tipo Tahoma =====
 function regFonts(doc){doc.addFileToVFS('tah.ttf',FONT_R);doc.addFont('tah.ttf','tah','normal');doc.addFileToVFS('tahb.ttf',FONT_B);doc.addFont('tahb.ttf','tah','bold')}
 function otPage(doc,v){
-  const X0=86,X1=525,W=X1-X0,P=r=>X0+W*r,FS=7.5;let y=54;
+  const X0=40,X1=572,W=X1-X0,P=r=>X0+W*r,FS=8.6;let y=36;
   doc.setDrawColor(0);doc.setTextColor(0);
-  const T=(s,x,yy,o)=>{o=o||{};doc.setFont('tah',o.b?'bold':'normal');doc.setFontSize(o.fs||(o.l?8.6:8.2));doc.text(String(s||''),x,yy,o.c?{align:'center'}:undefined)};
+  const T=(s,x,yy,o)=>{o=o||{};doc.setFont('tah',o.b?'bold':'normal');doc.setFontSize(o.fs||(o.l?9:8.6));doc.text(String(s||''),x,yy,o.c?{align:'center'}:undefined)};
   const top=y;
   // encabezado
-  const lh=40;doc.addImage(LOGO_B,'JPEG',X0+6,y+6,lh*LOGO_B_R,lh);
-  const ph=40,pw=ph*LOGO_P_R;doc.addImage(LOGO_P,'JPEG',X1-6-pw,y+7,pw,ph);
-  T('ORDEN DE TRABAJO',P(0.47),y+33,{b:1,fs:12,c:1});
-  y+=54;doc.setLineWidth(0.6);doc.line(X0,y,X1,y);
-  const R=12.8,base=()=>y+R-3.6;
+  const lh=44;doc.addImage(LOGO_B,'JPEG',X0+8,y+8,lh*LOGO_B_R,lh);
+  const ph=42,pw=ph*LOGO_P_R;doc.addImage(LOGO_P,'JPEG',X1-8-pw,y+9,pw,ph);
+  T('ORDEN DE TRABAJO',P(0.5),y+36,{b:1,fs:14,c:1});
+  y+=62;doc.setLineWidth(0.6);doc.line(X0,y,X1,y);
+  const R=14,base=()=>y+R-4;
   // TRABAJO REALIZADO (fila más alta por si el texto es largo)
   {const h=15.5;T('TRABAJO REALIZADO',X0+2,y+h-4.5,{b:1,l:1});
-   doc.setFont('tah','bold');let fs=8.6;let ls;for(;;){doc.setFontSize(fs);ls=doc.splitTextToSize(v.trabajo,W*0.42);if(ls.length<=2&&(ls.length===1||fs<=6.5))break;fs-=0.5;if(fs<6)break}
+   doc.setFont('tah','bold');let fs=9;let ls;for(;;){doc.setFontSize(fs);ls=doc.splitTextToSize(v.trabajo,W*0.42);if(ls.length<=2&&(ls.length===1||fs<=6.5))break;fs-=0.5;if(fs<6)break}
    if(ls.length===1)T(ls[0],P(0.535),y+h-4.5,{b:1,fs,c:1});else ls.slice(0,2).forEach((l,i)=>T(l,P(0.535),y+fs+1+i*fs*1.05,{b:1,fs,c:1}));
    if(v.ot)T(v.ot,P(0.88),y+h-4.5,{b:1,c:1});y+=h}
   const row=(lab,val)=>{T(lab,X0+2,base(),{b:1,l:1});T(val,P(0.65),base(),{c:1});y+=R};
@@ -431,22 +431,22 @@ function otPage(doc,v){
   row('EQUIPO',v.equipo);row('N° DE BIEN',v.bien);row('TIPO DE MANTENIMIENTO',v.tipo);
   T('FRENTE DE TRABAJO',X0+2,base(),{b:1,l:1});T(v.frente,P(0.41),base(),{c:1});T('HOROMETRO',P(0.65),base(),{c:1});T(v.horo,P(0.87),base(),{c:1});T(v.unidad,P(0.97),base(),{c:1});y+=R;
   const band=(t1,t2,h)=>{h=h||11.5;doc.setFillColor(191,191,191);doc.rect(X0,y,W,h,'F');
-    if(t2){T(t1,P(0.26),y+h-3.2,{b:1,c:1,fs:7.6});T(t2,P(0.76),y+h-3.2,{b:1,c:1,fs:7.6})}else T(t1,P(0.5),y+h-3.2,{b:1,c:1,fs:7.6});y+=h};
+    if(t2){T(t1,P(0.26),y+h-3.2,{b:1,c:1,fs:8});T(t2,P(0.76),y+h-3.2,{b:1,c:1,fs:8})}else T(t1,P(0.5),y+h-3.2,{b:1,c:1,fs:8});y+=h};
   band('DURACION DE LA TAREA');
-  const dt=(a,b,c,d)=>{T(a,X0+2,base(),{b:1,fs:7});T(b,P(0.41),base(),{c:1});T(c,P(0.53),base(),{b:1,fs:8.5});T(d,P(0.91),base(),{c:1});y+=R};
+  const dt=(a,b,c,d)=>{T(a,X0+2,base(),{b:1,fs:7.6});T(b,P(0.41),base(),{c:1});T(c,P(0.53),base(),{b:1,fs:9.4});T(d,P(0.91),base(),{c:1});y+=R};
   dt('FECHA DE INICIO',fdate(v.fini),'FECHA DE TERMINO',fdate(v.ffin));
   dt('HORA INICIAL',v.hini,'HORA FINAL',v.hfin);
   band('FALLA ENCONTRADA','CAUSA DE FALLA');
-  let h=31;T('–',P(0.26),y+h/2+2.5,{c:1});T('–',P(0.76),y+h/2+2.5,{c:1});y+=h;
+  let h=32;T('–',P(0.26),y+h/2+2.5,{c:1});T('–',P(0.76),y+h/2+2.5,{c:1});y+=h;
   band('DESCRIPCION DE LA TAREA REALIZADA');
-  h=118;tahBox(doc,v.desc,X0+2,y+3,W-4,h-6,FS);y+=h;
+  h=128;tahBox(doc,v.desc,X0+3,y+3,W-6,h-6,FS);y+=h;
   const cargo=CARGO[v.sup]||'SUPERVISOR/CAPATAZ';
   band('TRABAJADORES',cargo);
   h=40;tahBox(doc,v.trab,X0+2,y+3,W/2-6,h-6,FS);T(v.sup,P(0.76),y+h/2+2.5,{c:1});y+=h;
   band('MATERIALES USADOS');
   h=28;tahBox(doc,v.mat,X0+2,y+3,W-4,h-6,FS);y+=h;
   band('OBSERVACIONES');
-  h=731-60-12-12-y;{
+  h=756-62-12.8-12-y;{
     const {o,f}=obsLists(),pad=4,avail=Math.floor((h-2*pad)/(FS*1.25));
     needAnnex=false;
     if(f.length){
@@ -459,11 +459,11 @@ function otPage(doc,v){
   y+=h;doc.setLineWidth(0.4);doc.line(X0,y,X1,y);
   T('ESTADO DE EQUIPO',X0+2,base(),{b:1,l:1});T(v.eqest,P(0.65),base(),{c:1});y+=R;
   band('FIRMA DE RESPONSABLES',null,12);
-  h=731-y;
+  h=756-y;
   [['TRABAJADOR',v.trab.split('\n')[0]||''],[cargo,v.sup]].forEach(([lab,nm],i)=>{
     const half=W/2,bx=X0+i*half,ly=y+h-17;
     doc.setLineWidth(0.4);doc.line(bx+22,ly,bx+half-22,ly);
-    T(nm,bx+half/2,ly+7,{fs:6.5,c:1});T(lab,bx+half/2,ly+14,{b:1,fs:6.5,c:1});
+    T(nm,bx+half/2,ly+7,{fs:7,c:1});T(lab,bx+half/2,ly+14.5,{b:1,fs:7,c:1});
   });
   y+=h;doc.setLineWidth(0.8);doc.rect(X0,top,W,y-top);
 }
