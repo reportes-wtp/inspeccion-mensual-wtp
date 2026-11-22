@@ -97,7 +97,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-vis
 <header class="top">
   <div class="brand"><img id="lb" alt="Bechtel"><img id="lp" alt="PEMS"><button class="btn" id="nueva" type="button">Nueva inspección</button></div>
   <h1>INSPECCIÓN DE EQUIPOS</h1>
-  <p style="margin:2px 0 0;font-size:13px;opacity:.75">Versión 22-11-2026 · formato OT original</p>
+  <p style="margin:2px 0 0;font-size:13px;opacity:.75">Versión 22-11-2026 (2) · fotos a Drive</p>
   <p>Llena los datos, observaciones y faltantes, y agrega las fotos. Sale un solo PDF: OT + reporte fotográfico.</p>
 </header>
 <main>
@@ -184,6 +184,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-vis
 <div class="bar"><div class="in">
   <div class="prog" id="prog"><i></i></div>
   <span class="msg" id="msg">Los datos se guardan solos en este celular mientras llenas.</span>
+  <span class="msg" id="sync" hidden style="font-weight:600"></span>
   <button class="btn" id="share" type="button" hidden>Compartir</button><button class="btn" id="again" type="button" hidden>Descargar otra vez</button>
   <button class="btn pri" id="gen" type="button">Generar PDF</button>
 </div></div>
@@ -488,7 +489,7 @@ function record(v,nf,name){
   return{id:otId,registro:new Date().toISOString(),trabajo:v.trabajo,estado:v.estado,equipo:v.equipo,bien:v.bien,tipo:v.tipo,frente:v.frente,ubicacion:v.ubic,horometro:v.horo,unidad:v.unidad,
     fecha_inicio:fdate(fi),hora_inicio:v.hini,fecha_termino:fdate(ff),hora_final:v.hfin,duracion_h:dur,descripcion:v.desc,trabajadores:tr.join(', '),supervisor:v.sup+(CARGO[v.sup]?' – '+CARGO[v.sup]:''),materiales:v.mat,
     observaciones:o.map((x,i)=>(i+1)+'. '+x).join('\n'),n_observaciones:o.length,guia:'',faltantes_txt:f.map(x=>x.pieza+(x.cantidad?' ('+x.cantidad+')':'')).join(', '),n_faltantes:f.length,faltantes:f,
-    estado_equipo:v.eqest,n_fotos:nf,archivo:name};
+    estado_equipo:v.eqest,n_fotos:nf,archivo:name,carpeta:clean([v.bien,(v.trabajo||'').replace(/\s+/g,'_'),fdate(fi).replace(/\//g,'-')].filter(Boolean).join('_'))+'_'+otId.slice(-4)};
 }
 const b64=blob=>new Promise(r=>{const f=new FileReader();f.onload=()=>r(String(f.result).split(',')[1]||'');f.onerror=()=>r('');f.readAsDataURL(blob)});
 async function send(data){try{const r=await fetch(SHEET_URL,{method:'POST',body:JSON.stringify(data)});const j=await r.json();return !!(j&&j.ok)}catch(e){return false}}
@@ -501,7 +502,45 @@ async function flush(){
   store.set('queue',JSON.stringify(left));flushing=false;
   if(q.length>left.length)msg('✓ '+(q.length-left.length)+' registro(s) pendiente(s) guardado(s) en la base.'+(left.length?' Faltan '+left.length+'.':''));
 }
-addEventListener('online',()=>{flush();syncMaster()});
+addEventListener('online',()=>{flush();syncMaster();subirFotos()});
+// ---------- fotos a Drive (cola en IndexedDB) ----------
+const IDB={db:null,open(){return this.db?Promise.resolve(this.db):new Promise((res,rej)=>{try{const q=indexedDB.open('insp_fotos',1);q.onupgradeneeded=()=>q.result.createObjectStore('f',{keyPath:'k'});q.onsuccess=()=>{this.db=q.result;res(this.db)};q.onerror=()=>rej(q.error)}catch(e){rej(e)}})},
+  async put(o){const db=await this.open();return new Promise((res,rej)=>{const tx=db.transaction('f','readwrite');tx.objectStore('f').put(o);tx.oncomplete=res;tx.onerror=()=>rej(tx.error)})},
+  async all(){const db=await this.open();return new Promise((res,rej)=>{const q=db.transaction('f').objectStore('f').getAll();q.onsuccess=()=>res(q.result||[]);q.onerror=()=>rej(q.error)})},
+  async del(k){const db=await this.open();return new Promise((res)=>{const tx=db.transaction('f','readwrite');tx.objectStore('f').delete(k);tx.oncomplete=res;tx.onerror=res})}};
+function syncMsg(t){const s=$('sync');s.hidden=!t;s.textContent=t||''}
+async function reducir(url){
+  const im=await loadImg(url),M=1600,s=Math.min(1,M/Math.max(im.naturalWidth,im.naturalHeight));
+  const c=document.createElement('canvas');c.width=Math.round(im.naturalWidth*s);c.height=Math.round(im.naturalHeight*s);
+  const x=c.getContext('2d');x.imageSmoothingQuality='high';x.drawImage(im,0,0,c.width,c.height);
+  const b=await new Promise(r=>c.toBlob(r,'image/jpeg',0.8));c.width=c.height=0;return b;
+}
+async function encolarFotos(rec,list){
+  const carpeta=rec.carpeta;
+  try{
+    for(let i=0;i<list.length;i++){
+      syncMsg('Preparando fotos para Drive '+(i+1)+' de '+list.length+'…');
+      const b=await reducir(list[i].url);
+      await IDB.put({k:rec.id+'_'+String(i+1).padStart(3,'0'),id:rec.id,carpeta,n:i+1,total:list.length,nombre:clean(rec.bien||'FOTO')+'_'+String(i+1).padStart(3,'0')+'.jpg',blob:b});
+    }
+  }catch(e){syncMsg('No se pudieron preparar algunas fotos para Drive.');return}
+  subirFotos();
+}
+let subiendo=false;
+async function subirFotos(){
+  if(subiendo||!navigator.onLine)return;let lista;try{lista=(await IDB.all()).sort((a,b)=>a.k<b.k?-1:1)}catch(e){return}
+  if(!lista.length){return}
+  subiendo=true;let ok=0,fallo=0;
+  for(const f of lista){
+    syncMsg('Subiendo fotos a Drive: '+(ok+1)+' de '+lista.length+'…');
+    try{const d=await b64(f.blob);const r=await fetch(SHEET_URL,{method:'POST',body:JSON.stringify({accion:'foto',id:f.id,carpeta:f.carpeta,nombre:f.nombre,b64:d})});const j=await r.json();
+      if(j&&j.ok){await IDB.del(f.k);ok++}else{fallo++;break}}catch(e){fallo++;break}
+  }
+  subiendo=false;
+  const quedan=(await IDB.all().catch(()=>[])).length;
+  syncMsg(quedan?'📷 '+quedan+' foto(s) pendiente(s) de subir a Drive. Se subirán solas cuando haya señal.':'✓ Fotos subidas a Drive ('+ok+').');
+  if(!quedan)setTimeout(()=>syncMsg(''),8000);else setTimeout(subirFotos,60000);
+}
 $('gen').onclick=async()=>{
   if(busy||!check())return;
   if(!window.jspdf){msg('No cargó el generador de PDF. Revisa tu conexión y recarga la página.',true);return}
@@ -532,6 +571,7 @@ $('gen').onclick=async()=>{
     const ok=await send({...rec,pdf});
     if(!ok)queue(rec);else store.set('queue',JSON.stringify(pend().filter(x=>x.id!==rec.id)));
     msg(base+(ok?' · ✓ Guardado en la base':' · Sin conexión: se guardará cuando haya señal ('+pend().length+' pendiente'+(pend().length>1?'s':'')+')'),!ok||!!bad);
+    if(photos.length)await encolarFotos(rec,photos.slice());
   }catch(e){msg('No se pudo generar el PDF: '+(e&&e.message||e),true)}
   finally{busy=false;$('prog').style.display='none';bar.style.width='0';upd()}
 };
@@ -543,7 +583,7 @@ if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceW
 
 loadMasterCache();fillEquipos();loadDraft();
 fillBienes();trabUpd();renderObs();renderFalt();renderTrab();fillLists();render();
-setTimeout(()=>{flush();syncMaster()},1200);
+setTimeout(()=>{flush();syncMaster();subirFotos()},1200);
 }
 </script>
 </body>
