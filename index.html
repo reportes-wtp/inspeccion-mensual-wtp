@@ -97,7 +97,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-vis
 <header class="top">
   <div class="brand"><img id="lb" alt="Bechtel"><img id="lp" alt="PEMS"><button class="btn" id="nueva" type="button">Nueva inspección</button></div>
   <h1>INSPECCIÓN DE EQUIPOS</h1>
-  <p style="margin:2px 0 0;font-size:13px;opacity:.75">Versión 22-11-2026 (2) · fotos a Drive</p>
+  <p style="margin:2px 0 0;font-size:13px;opacity:.75">Versión 22-11-2026 (3) · fotos a Drive rápido</p>
   <p>Llena los datos, observaciones y faltantes, y agrega las fotos. Sale un solo PDF: OT + reporte fotográfico.</p>
 </header>
 <main>
@@ -529,16 +529,27 @@ async function encolarFotos(rec,list){
 let subiendo=false;
 async function subirFotos(){
   if(subiendo||!navigator.onLine)return;let lista;try{lista=(await IDB.all()).sort((a,b)=>a.k<b.k?-1:1)}catch(e){return}
-  if(!lista.length){return}
-  subiendo=true;let ok=0,fallo=0;
-  for(const f of lista){
-    syncMsg('Subiendo fotos a Drive: '+(ok+1)+' de '+lista.length+'…');
-    try{const d=await b64(f.blob);const r=await fetch(SHEET_URL,{method:'POST',body:JSON.stringify({accion:'foto',id:f.id,carpeta:f.carpeta,nombre:f.nombre,b64:d})});const j=await r.json();
-      if(j&&j.ok){await IDB.del(f.k);ok++}else{fallo++;break}}catch(e){fallo++;break}
+  if(!lista.length)return;
+  subiendo=true;const total=lista.length;let hechas=0,error=false;
+  // lotes de 5 fotos de la misma inspección
+  const lotes=[];lista.forEach(f=>{const l=lotes[lotes.length-1];if(l&&l.id===f.id&&l.items.length<5)l.items.push(f);else lotes.push({id:f.id,carpeta:f.carpeta,items:[f]})});
+  syncMsg('Subiendo fotos a Drive: 0 de '+total+'…');
+  let idx=0;
+  async function worker(){
+    while(!error&&idx<lotes.length){
+      const L=lotes[idx++];
+      try{
+        const fotos=[];for(const f of L.items)fotos.push({nombre:f.nombre,b64:await b64(f.blob)});
+        const r=await fetch(SHEET_URL,{method:'POST',body:JSON.stringify({accion:'fotos',id:L.id,carpeta:L.carpeta,primero:L.items.some(f=>f.n<=5),fotos})});
+        const j=await r.json();
+        if(j&&j.ok){for(const f of L.items)await IDB.del(f.k);hechas+=L.items.length;syncMsg('Subiendo fotos a Drive: '+hechas+' de '+total+'…')}else error=true;
+      }catch(e){error=true}
+    }
   }
+  await Promise.all([worker(),worker()]);
   subiendo=false;
   const quedan=(await IDB.all().catch(()=>[])).length;
-  syncMsg(quedan?'📷 '+quedan+' foto(s) pendiente(s) de subir a Drive. Se subirán solas cuando haya señal.':'✓ Fotos subidas a Drive ('+ok+').');
+  syncMsg(quedan?'📷 '+quedan+' foto(s) pendiente(s) de subir a Drive. Se subirán solas cuando haya señal.':'✓ Fotos subidas a Drive ('+hechas+').');
   if(!quedan)setTimeout(()=>syncMsg(''),8000);else setTimeout(subirFotos,60000);
 }
 $('gen').onclick=async()=>{
