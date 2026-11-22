@@ -44,6 +44,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-vis
 .btn{font:600 16px Inter,sans-serif;min-height:44px;padding:10px 16px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
 .btn.pri{background:var(--red);border-color:var(--red);color:#fff}
 .btn:disabled{opacity:.5;cursor:default}
+.pick.cam{color:#fff}
 .pick{position:relative;overflow:hidden;display:inline-flex;align-items:center;margin:0;font-size:16px;color:var(--ink)}
 .fi{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:0;padding:0;min-height:0}
 .count{margin-left:auto;font:700 22px "Barlow Condensed",sans-serif}
@@ -64,6 +65,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-vis
 .ph .n{position:absolute;top:4px;left:4px;background:rgba(0,0,0,.65);color:#fff;font-size:13px;font-weight:600;padding:1px 7px;border-radius:10px}
 .ph .tools{position:absolute;bottom:4px;right:4px;display:flex;gap:4px}
 .ph .tools button{width:36px;height:36px;border:0;border-radius:50%;background:rgba(0,0,0,.65);color:#fff;font-size:16px;cursor:pointer}
+.emp2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.emp2 .empty b{display:block;font-size:17px;margin-bottom:4px}
 .empty{position:relative;display:block;margin-top:14px;border:2px dashed var(--line);border-radius:12px;padding:30px 16px;text-align:center;color:var(--mut);cursor:pointer;user-select:none;-webkit-user-select:none}
 .empty b{display:block;font:700 22px "Barlow Condensed",sans-serif;color:var(--ink)}
 .bar{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);padding:10px max(4vw,14px) calc(10px + env(safe-area-inset-bottom));z-index:5}
@@ -99,7 +101,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-vis
   <div class="brand"><img id="lb" alt="Bechtel"><img id="lp" alt="PEMS"><button class="btn" id="nueva" type="button">Nueva inspección</button></div>
   <h1>INSPECCIÓN DE EQUIPOS</h1>
   <p>Llena los datos, observaciones y faltantes, y agrega las fotos. Sale un solo PDF: OT + reporte fotográfico.</p>
-  <div class="ver">Inspección de Equipos · v1.3.1 · Bechtel · Yanacocha WTP</div>
+  <div class="ver">Inspección de Equipos · v1.4.0 · Bechtel · Yanacocha WTP</div>
 </header>
 <main>
   <section class="card">
@@ -171,7 +173,8 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-vis
   <section class="card">
     <div class="row"><h2 style="margin:0">Reporte fotográfico</h2><span class="count" id="cnt">0 / 200</span></div>
     <div class="row" style="margin-top:12px">
-      <label class="btn pick" id="add">+ Agregar fotos<input type="file" class="fi" accept="image/*" multiple></label>
+      <label class="btn pick pri cam" id="cam">📷 Tomar foto<input type="file" class="fi" accept="image/*" capture="environment"></label>
+      <label class="btn pick" id="add">🖼️ Galería<input type="file" class="fi" accept="image/*" multiple></label>
       <div class="seg" role="group" aria-label="Ajuste de foto">
         <button class="btn" type="button" id="mCover" aria-pressed="true">Llenar marco</button>
         <button class="btn" type="button" id="mFit" aria-pressed="false">Foto completa</button>
@@ -304,7 +307,7 @@ document.querySelector('main').addEventListener('change',()=>{saveDraft();upd()}
 // ---------- fotos ----------
 function render(){
   const g=$('grid');g.className=mode==='fit'?'fit':'';
-  if(!photos.length){g.innerHTML='<label class="empty"><b>Toca para elegir fotos</b>Desde la galería, hasta '+MAX+'.<input type="file" class="fi" accept="image/*" multiple></label>';upd();return}
+  if(!photos.length){g.innerHTML='<div class="emp2"><label class="empty"><b>📷 Tomar foto</b>Abre la cámara.<input type="file" class="fi" accept="image/*" capture="environment"></label><label class="empty"><b>🖼️ Galería</b>Hasta '+MAX+' fotos.<input type="file" class="fi" accept="image/*" multiple></label></div>';upd();return}
   let h='<div class="pages">';
   for(let p=0;p<photos.length;p+=PER){
     h+='<div class="page"><h3>Hoja de fotos '+(p/PER+1)+'</h3><div class="sheet">';
@@ -328,7 +331,7 @@ function addFiles(list){
   const imgs=[...list].filter(f=>f.type.startsWith('image/')||/\.(jpe?g|png|heic|webp)$/i.test(f.name));
   const room=MAX-photos.length;
   imgs.slice(0,room).forEach(f=>photos.push({id:++uid,file:f,url:URL.createObjectURL(f)}));
-  if(imgs.length>room)msg('Solo se agregaron '+room+'. El máximo es '+MAX+' fotos.',true);else msg(photos.length+' foto(s) listas.');
+  if(imgs.length>room)msg('Solo se agregaron '+room+'. El máximo es '+MAX+' fotos.',true);else msg(photos.length+' foto(s) listas.'+(imgs.length===1&&photos.length<MAX?' Toca 📷 para la siguiente.':''));
   render();
 }
 document.addEventListener('change',e=>{if(e.target.classList&&e.target.classList.contains('fi')){addFiles(e.target.files);e.target.value=''}});
