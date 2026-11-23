@@ -101,7 +101,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-vis
   <div class="brand"><img id="lb" alt="Bechtel"><img id="lp" alt="PEMS"><button class="btn" id="nueva" type="button">Nueva inspección</button></div>
   <h1>INSPECCIÓN DE EQUIPOS</h1>
   <p>Llena los datos, observaciones y faltantes, y agrega las fotos. Sale un solo PDF: OT + reporte fotográfico.</p>
-  <div class="ver">Inspección de Equipos · v1.5.0 · Bechtel · Yanacocha WTP</div>
+  <div class="ver">Inspección de Equipos · v1.6.0 · Bechtel · Yanacocha WTP</div>
 </header>
 <main>
   <section class="card">
@@ -353,6 +353,8 @@ $('dSi').onclick=()=>{
   saveDraft();$('dlg').classList.remove('on');render();msg('Lista para una nueva inspección (se mantuvieron trabajo, frente y personal).');scrollTo(0,0)};
 
 // ---------- PDF ----------
+const MESES=['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SETIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+const rutaFecha=v=>{let a,m,d;if(v){[a,m,d]=v.split('-')}else{const t=new Date();a=String(t.getFullYear());m=String(t.getMonth()+1).padStart(2,'0');d=String(t.getDate()).padStart(2,'0')}return a+'/'+m+' '+MESES[+m-1]+'/'+d+'-'+m+'-'+a};
 const fdate=v=>{if(!v)return'';const[a,m,d]=v.split('-');return d+'/'+m+'/'+a};
 function loadImg(url){return new Promise((res,rej)=>{const im=new Image();im.onload=()=>res(im);im.onerror=()=>rej(new Error('img'));im.src=url})}
 const PW=595.28,PH=841.89,MX=48,TOP=74,BOT=800,GX=22,GY=16;
@@ -489,11 +491,13 @@ function record(v,nf,name){
   const fi=$('fini').value,ff=$('ffin').value||fi;
   const dur=hrs(fi&&v.hini?fi+'T'+v.hini:'',ff&&v.hfin?ff+'T'+v.hfin:'');
   const tr=v.trab.split('\n').filter(x=>x.trim());
+  const BASE=clean([v.bien,(v.trabajo||'').replace(/\s+/g,'_'),fdate(fi).replace(/\//g,'-')].filter(Boolean).join('_'))+'_'+otId.slice(-4);
+  const RUTA=rutaFecha(fi);
   const o0=0;const o=obs.map(U).filter(Boolean),f=falt.filter(x=>U(x.d)).map(x=>({pieza:U(x.d),cantidad:x.c,comentario:U(x.m)}));
   return{id:otId,registro:new Date().toISOString(),trabajo:v.trabajo,estado:v.estado,equipo:v.equipo,bien:v.bien,tipo:v.tipo,frente:v.frente,ubicacion:v.ubic,horometro:v.horo,unidad:v.unidad,
     fecha_inicio:fdate(fi),hora_inicio:v.hini,fecha_termino:fdate(ff),hora_final:v.hfin,duracion_h:dur,descripcion:v.desc,trabajadores:tr.join(', '),supervisor:v.sup+(CARGO[v.sup]?' – '+CARGO[v.sup]:''),materiales:v.mat,
     observaciones:o.map((x,i)=>(i+1)+'. '+x).join('\n'),n_observaciones:o.length,guia:'',faltantes_txt:f.map(x=>x.pieza+(x.cantidad?' ('+x.cantidad+')':'')).join(', '),n_faltantes:f.length,faltantes:f,
-    estado_equipo:v.eqest,n_fotos:nf,archivo:name,carpeta:clean([v.bien,(v.trabajo||'').replace(/\s+/g,'_'),fdate(fi).replace(/\//g,'-')].filter(Boolean).join('_'))+'_'+otId.slice(-4)};
+    estado_equipo:v.eqest,n_fotos:nf,archivo:name,base:BASE,ruta:RUTA,carpeta:RUTA+'/'+BASE};
 }
 const b64=blob=>new Promise(r=>{const f=new FileReader();f.onload=()=>r(String(f.result).split(',')[1]||'');f.onerror=()=>r('');f.readAsDataURL(blob)});
 async function send(data){try{const r=await fetch(SHEET_URL,{method:'POST',body:JSON.stringify(data)});const j=await r.json();return !!(j&&j.ok)}catch(e){return false}}
