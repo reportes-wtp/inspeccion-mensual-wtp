@@ -101,7 +101,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-vis
   <div class="brand"><img id="lb" alt="Bechtel"><img id="lp" alt="PEMS"><button class="btn" id="nueva" type="button">Nueva inspección</button></div>
   <h1>INSPECCIÓN DE EQUIPOS</h1>
   <p>Llena los datos, observaciones y faltantes, y agrega las fotos. Sale un solo PDF: OT + reporte fotográfico.</p>
-  <div class="ver">Inspección de Equipos · v1.6.0 · Bechtel · Yanacocha WTP</div>
+  <div class="ver">Inspección de Equipos · v1.7.0 · Bechtel · Yanacocha WTP</div>
 </header>
 <main>
   <section class="card">
@@ -209,7 +209,7 @@ const CARGO={'ENRIQUE CORTES':'SUPERINTENDENTE DE MANTENIMIENTO','JUAN CAMPOS':'
 const TIPO_DE=s=>/DESMOVILIZ/.test(s)?'DESMOVILIZACION':/INGRESO/.test(s)?'INGRESO':/MENSUAL/.test(s)?'MENSUAL':/TRIMESTRAL/.test(s)?'TRIMESTRAL':/DIARIA/.test(s)?'DIARIA':null;
 const $=id=>document.getElementById(id);
 let photos=[],uid=0,mode='cover',busy=false,lastPdf=null,otId='',obs=[],falt=[],trabs=[''],master=MASTER_DEF;
-const newId=()=>'INS-'+Date.now().toString(36).toUpperCase()+'-'+Math.random().toString(36).slice(2,6).toUpperCase();
+const newId=()=>{const t=new Date(),p=n=>String(n).padStart(2,'0');return 'INS-'+t.getFullYear()+p(t.getMonth()+1)+p(t.getDate())+'-'+p(t.getHours())+p(t.getMinutes())+p(t.getSeconds())};
 $('lb').src=LOGO_B;$('lp').src=LOGO_P;
 const store={get(k){try{return localStorage.getItem(K+k)}catch(e){return null}},set(k,v){try{localStorage.setItem(K+k,v)}catch(e){}},del(k){try{localStorage.removeItem(K+k)}catch(e){}}};
 const today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
@@ -491,7 +491,7 @@ function record(v,nf,name){
   const fi=$('fini').value,ff=$('ffin').value||fi;
   const dur=hrs(fi&&v.hini?fi+'T'+v.hini:'',ff&&v.hfin?ff+'T'+v.hfin:'');
   const tr=v.trab.split('\n').filter(x=>x.trim());
-  const BASE=clean([v.bien,(v.trabajo||'').replace(/\s+/g,'_'),fdate(fi).replace(/\//g,'-')].filter(Boolean).join('_'))+'_'+otId.slice(-4);
+  const BASE=clean([v.bien,(v.trabajo||'').replace(/\s+/g,'_'),fdate(fi).replace(/\//g,'-')].filter(Boolean).join('_'))+'_'+(/^INS-\d{8}-\d{6}$/.test(otId)?otId.slice(13,17):otId.slice(-4));
   const RUTA=rutaFecha(fi);
   const o0=0;const o=obs.map(U).filter(Boolean),f=falt.filter(x=>U(x.d)).map(x=>({pieza:U(x.d),cantidad:x.c,comentario:U(x.m)}));
   return{id:otId,registro:new Date().toISOString(),trabajo:v.trabajo,estado:v.estado,equipo:v.equipo,bien:v.bien,tipo:v.tipo,frente:v.frente,ubicacion:v.ubic,horometro:v.horo,unidad:v.unidad,
