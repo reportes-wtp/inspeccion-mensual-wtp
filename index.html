@@ -46,7 +46,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-vis
 .btn:disabled{opacity:.5;cursor:default}
 .pick.cam{color:#fff}
 .pick{position:relative;overflow:hidden;display:inline-flex;align-items:center;margin:0;font-size:16px;color:var(--ink)}
-.fi{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:0;padding:0;min-height:0}
+.fi,.fiz{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:0;padding:0;min-height:0}
 .count{margin-left:auto;font:700 22px "Barlow Condensed",sans-serif}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
 .seg button{border:0;border-radius:0;background:transparent}
@@ -90,6 +90,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-vis
 .ft .x{width:44px;padding:0}
 .iz{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:10px;border:1px solid var(--line);border-radius:8px;margin-bottom:10px;align-items:end}
 .iz .c{grid-column:1/3}.iz .x{width:44px;padding:0;justify-self:end}
+.iz .zf{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px;align-items:center}.iz .zf .pick{min-height:44px}.zt{position:relative;width:64px;height:64px;border-radius:6px;overflow:hidden;border:1px solid var(--line)}.zt img{width:100%;height:100%;object-fit:cover}.zt b{position:absolute;left:3px;top:2px;background:#000a;color:#fff;font-size:11px;padding:0 4px;border-radius:4px}.zt button{position:absolute;right:2px;top:2px;width:22px;height:22px;border:0;border-radius:50%;background:#000b;color:#fff;font-size:12px;padding:0;cursor:pointer}
 .iz .n{grid-column:1/-1;font-weight:700;font-size:13px;color:var(--mut,#6b7a80)}
 @media(max-width:560px){.iz{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.iz .c{grid-column:1/2}.iz .e{grid-column:1/-1}}
 @media(max-width:560px){.ft{grid-template-columns:minmax(0,1fr) 90px}.ft .c{grid-column:1/2}}
@@ -105,7 +106,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-vis
   <div class="brand"><img id="lb" alt="Bechtel"><img id="lp" alt="PEMS"><button class="btn" id="nueva" type="button">Nueva inspección</button></div>
   <h1>INSPECCIÓN DE EQUIPOS</h1>
   <p>Llena los datos, observaciones y faltantes, y agrega las fotos. Sale un solo PDF: OT + reporte fotográfico.</p>
-  <div class="ver">Inspección de Equipos · v1.11.1 · Bechtel · Yanacocha WTP</div>
+  <div class="ver">Inspección de Equipos · v1.12.1 · Bechtel · Yanacocha WTP</div>
 </header>
 <main>
   <section class="card">
@@ -113,10 +114,10 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-vis
     <div class="g">
       <div class="full"><label for="trabsel">Trabajo realizado <b>*</b></label>
         <select id="trabsel">
-          <option>INSPECCION DE DESMOVILIZACION</option><option>INSPECCION DE INGRESO</option>
+          <option>INSPECCION DE DESMOVILIZACION</option><option>INSPECCION DE INGRESO</option><option>INSPECCION DE ELEMENTOS DE IZAJE</option>
           <option>INSPECCION MENSUAL - NOV 2026</option><option>INSPECCION MENSUAL - DIC 2026</option><option>INSPECCION MENSUAL - ENE 2027</option>
           <option>INSPECCION TRIMESTRAL - NOV 2026</option><option>INSPECCION TRIMESTRAL - DIC 2026</option><option>INSPECCION TRIMESTRAL - ENE 2027</option>
-          <option>INSPECCION DIARIA</option><option>INSPECCION DE ELEMENTOS DE IZAJE</option><option value="_">OTRO (escribir)</option>
+          <option>INSPECCION DIARIA</option><option value="_">OTRO (escribir)</option>
         </select></div>
       <div class="full" id="trabOtro" hidden><label for="trabajo">Escribe el trabajo realizado <b>*</b></label><input type="text" id="trabajo" placeholder="INSPECCION DE INGRESO / DESMOVILIZACION…"></div>
       <div><label for="equipo">Equipo</label><select id="equipo"><option value="">— Elegir —</option></select></div>
@@ -164,7 +165,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-vis
     <h2>Elementos de izaje inspeccionados</h2>
     <div id="izl"></div>
     <button class="btn" id="addIz" type="button">+ Agregar elemento</button>
-    <p class="hint">Registra cada estrobo, eslinga, grillete, gancho… con su código, capacidad, estado y si tiene la cinta de color del mes. Toma foto de cada elemento.</p>
+    <p class="hint">Registra cada estrobo, eslinga, grillete, gancho… con su código, capacidad, estado y si tiene la cinta de color del mes. Toma la foto de cada elemento con su botón 📷: va primero en el reporte fotográfico, con el número del elemento.</p>
   </section>
 
   <section class="card">
@@ -282,18 +283,30 @@ function renderFalt(){
 }
 const IZ_E=['ESTROBO DE CABLE','ESLINGA SINTÉTICA','GRILLETE','GANCHO','CADENA','OTRO'],IZ_S=['BUENO','OBSERVADO','DAR DE BAJA'],IZ_M=['SÍ','NO'];
 const opt=(L,v)=>L.map(x=>'<option'+(x===v?' selected':'')+'>'+x+'</option>').join('');
+let izu=0;
+const zPh=z=>photos.filter(p=>p.z===z.u);
 function renderIz(){
+  iz.forEach(z=>{if(!z.u)z.u='z'+Date.now().toString(36)+(++izu)});
   $('izl').innerHTML=iz.map((z,i)=>'<div class="iz"><div class="n">Elemento '+(i+1)+'</div>'+
    '<div class="e"><label>Elemento</label><select data-z="'+i+'.e">'+opt(IZ_E,z.e)+'</select></div>'+
+   (z.e==='OTRO'?'<div class="e"><label>¿Qué elemento?</label><input type="text" data-z="'+i+'.x" value="'+esc(z.x||'')+'" placeholder="TENSOR, ANILLO MAESTRO…"></div>':'')+
    '<div><label>Código</label><input type="text" data-z="'+i+'.c" value="'+esc(z.c)+'" placeholder="E-015"></div>'+
    '<div><label>Capacidad</label><input type="text" data-z="'+i+'.k" value="'+esc(z.k)+'" placeholder="5 T"></div>'+
    '<div><label>Estado</label><select data-z="'+i+'.s">'+opt(IZ_S,z.s)+'</select></div>'+
    '<div><label>Color del mes</label><select data-z="'+i+'.m">'+opt(IZ_M,z.m)+'</select></div>'+
    '<div class="c"><label>Observación</label><input type="text" data-z="'+i+'.o" value="'+esc(z.o)+'" placeholder="ALAMBRES ROTOS EN OJAL"></div>'+
-   '<button class="btn x" type="button" data-zx="'+i+'" aria-label="Quitar elemento">✕</button></div>').join('')||'<p class="hint" style="margin:0 0 10px">Sin elementos registrados.</p>';
+   '<button class="btn x" type="button" data-zx="'+i+'" aria-label="Quitar elemento">✕</button>'+
+   '<div class="zf"><label class="btn pick pri cam">📷 Foto<input type="file" class="fiz" data-zi="'+i+'" accept="image/*" capture="environment"></label>'+
+   '<label class="btn pick">🖼️<input type="file" class="fiz" data-zi="'+i+'" accept="image/*" multiple></label>'+
+   zPh(z).map(p=>'<span class="zt"><img src="'+p.url+'" alt=""><b>'+(photos.indexOf(p)+1)+'</b><button type="button" data-zp="'+p.id+'" aria-label="Quitar foto">✕</button></span>').join('')+
+   (zPh(z).length?'':'<span class="hint" style="margin:0">Sin foto</span>')+'</div></div>').join('')||'<p class="hint" style="margin:0 0 10px">Sin elementos registrados.</p>';
 }
+function sortPhotos(){const ord=new Map(iz.map((z,i)=>[z.u,i]));const a=photos.filter(p=>p.z&&ord.has(p.z)).sort((x,y)=>ord.get(x.z)-ord.get(y.z)||x.id-y.id),b=photos.filter(p=>!(p.z&&ord.has(p.z)));photos=a.concat(b)}
+function addZFiles(i,list){const z=iz[i];if(!z)return;const imgs=[...list].filter(f=>f.type.startsWith('image/')||/\.(jpe?g|png|heic|webp)$/i.test(f.name));
+  imgs.slice(0,MAX-photos.length).forEach(f=>photos.push({id:++uid,file:f,url:URL.createObjectURL(f),z:z.u}));sortPhotos();renderIz();render();msg('Foto agregada al elemento '+(i+1)+'. Va como foto N° '+(photos.indexOf(zPh(z)[0])+1)+' del reporte.')}
+document.addEventListener('change',e=>{if(e.target.classList&&e.target.classList.contains('fiz')){addZFiles(+e.target.dataset.zi,e.target.files);e.target.value=''}});
 function izUpd(){$('izCard').hidden=!isIzaje()}
-const izRows=()=>iz.filter(z=>U(z.c)||U(z.o)||z.e).map(z=>({elemento:U(z.e),codigo:U(z.c),capacidad:U(z.k),estado:U(z.s),color:U(z.m),observacion:U(z.o)}));
+const izRows=()=>iz.filter(z=>U(z.c)||U(z.o)||z.e).map(z=>({fotos:zPh(z).map(p=>photos.indexOf(p)+1).join(', '),elemento:z.e==='OTRO'&&U(z.x)?U(z.x):U(z.e),codigo:U(z.c),capacidad:U(z.k),estado:U(z.s),color:U(z.m),observacion:U(z.o)}));
 function izResumen(){const r=izRows();return{n:r.length,b:r.filter(x=>x.estado==='BUENO').length,o:r.filter(x=>x.estado==='OBSERVADO').length,d:r.filter(x=>x.estado==='DAR DE BAJA').length,sc:r.filter(x=>x.color==='NO').length}}
 $('addIz').onclick=()=>{const p=iz[iz.length-1];iz.push({e:p?p.e:'ESTROBO DE CABLE',c:'',k:'',s:'BUENO',m:'SÍ',o:''});renderIz();saveDraft();const l=$('izl').lastElementChild;l&&l.querySelector('input').focus()};
 function renderTrab(){
@@ -306,7 +319,8 @@ $('addObs').onclick=()=>{obs.push('');renderObs();saveDraft();const t=$('obsl').
 $('addFalt').onclick=()=>{falt.push({d:'',c:'1',m:''});renderFalt();saveDraft();const l=$('faltl').lastElementChild;l&&l.querySelector('input').focus()};
 document.querySelector('main').addEventListener('click',e=>{
   const a=e.target.closest('[data-ox]'),b=e.target.closest('[data-fx]'),c=e.target.closest('[data-tx]'),z=e.target.closest('[data-zx]');
-  if(z){iz.splice(+z.dataset.zx,1);renderIz();saveDraft()}
+  if(z){const q=iz[+z.dataset.zx];photos.filter(p=>q&&p.z===q.u).forEach(p=>URL.revokeObjectURL(p.url));photos=photos.filter(p=>!(q&&p.z===q.u));iz.splice(+z.dataset.zx,1);sortPhotos();renderIz();render();saveDraft()}
+  const zp=e.target.closest('[data-zp]');if(zp){const id=+zp.dataset.zp;const p=photos.find(x=>x.id===id);if(p)URL.revokeObjectURL(p.url);photos=photos.filter(x=>x.id!==id);renderIz();render()}
   if(c){trabs.splice(+c.dataset.tx,1);renderTrab();saveDraft()}
   if(a){obs.splice(+a.dataset.ox,1);renderObs();saveDraft()}
   if(b){falt.splice(+b.dataset.fx,1);renderFalt();saveDraft()}
@@ -339,7 +353,7 @@ document.querySelector('main').addEventListener('input',e=>{
   if(t.dataset.o!=null){obs[+t.dataset.o]=t.value}
   else if(t.dataset.t!=null){trabs[+t.dataset.t]=t.value}
   else if(t.dataset.f){const[i,k]=t.dataset.f.split('.');falt[+i][k]=t.value}
-  else if(t.dataset.z){const[i,k]=t.dataset.z.split('.');iz[+i][k]=t.value}
+  else if(t.dataset.z){const[i,k]=t.dataset.z.split('.');iz[+i][k]=t.value;if(k==='e'){renderIz();saveDraft()}}
   t.classList.remove('bad');clearTimeout(st);st=setTimeout(saveDraft,300);upd();
 });
 document.querySelector('main').addEventListener('change',()=>{saveDraft();upd()});
@@ -365,7 +379,7 @@ $('grid').addEventListener('click',e=>{
   const i=+b.dataset.i,a=b.dataset.a;
   if(a==='x'){URL.revokeObjectURL(photos[i].url);photos.splice(i,1)}
   else{const j=a==='l'?i-1:i+1;[photos[i],photos[j]]=[photos[j],photos[i]]}
-  render();
+  sortPhotos();render();renderIz();
 });
 function addFiles(list){
   const imgs=[...list].filter(f=>f.type.startsWith('image/')||/\.(jpe?g|png|heic|webp)$/i.test(f.name));
@@ -376,7 +390,7 @@ function addFiles(list){
 }
 document.addEventListener('change',e=>{if(e.target.classList&&e.target.classList.contains('fi')){addFiles(e.target.files);e.target.value=''}});
 $('clr').onclick=()=>{if(busy)return;const b=$('clr');if(b.dataset.c!=='1'){b.dataset.c='1';b.textContent='¿Seguro? Toca otra vez';setTimeout(()=>{b.dataset.c='';b.textContent='Borrar fotos'},3000);return}
-  photos.forEach(p=>URL.revokeObjectURL(p.url));photos=[];b.dataset.c='';b.textContent='Borrar fotos';msg('Fotos borradas.');render()};
+  photos.forEach(p=>URL.revokeObjectURL(p.url));photos=[];b.dataset.c='';b.textContent='Borrar fotos';msg('Fotos borradas.');render();renderIz()};
 function setMode(m){mode=m;$('mCover').setAttribute('aria-pressed',m==='cover');$('mFit').setAttribute('aria-pressed',m==='fit');render()}
 $('mCover').onclick=()=>setMode('cover');$('mFit').onclick=()=>setMode('fit');
 
@@ -463,22 +477,22 @@ function izajePage(doc){
   const head=()=>{let y=36;const lh=44;doc.setDrawColor(0);doc.setTextColor(0);doc.setLineWidth(0.6);
     doc.addImage(LOGO_B,'JPEG',X0+8,y+8,lh*LOGO_B_R,lh);const pw=lh*LOGO_P_R*0.95;doc.addImage(LOGO_P,'JPEG',X1-8-pw,y+9,pw,lh*0.95);
     doc.setFont('tah','bold');doc.setFontSize(13);doc.text('REGISTRO DE ELEMENTOS DE IZAJE',X0+W/2,y+33,{align:'center'});
-    doc.setFont('tah','normal');doc.setFontSize(8);doc.text('EQUIPO: '+U($('equipo').value)+'   ·   N° DE BIEN: '+U($('bien').value)+'   ·   FECHA: '+fdate($('fini').value)+'   ·   FRENTE: '+U($('frente').value)+(U($('ubic').value)?' / '+U($('ubic').value):''),X0+W/2,y+48,{align:'center'});
-    doc.setLineWidth(0.8);doc.line(X0,y+58,X1,y+58);return y+70};
-  const C=[['N°',0.05],['ELEMENTO',0.17],['CÓDIGO',0.11],['CAPACIDAD',0.10],['ESTADO',0.13],['COLOR MES',0.09],['OBSERVACIÓN',0.35]];
+    doc.setFont('tah','normal');doc.setFontSize(8);doc.text('EQUIPO: '+U($('equipo').value)+'   ·   N° DE BIEN: '+U($('bien').value)+'   ·   FECHA: '+fdate($('fini').value)+'   ·   FRENTE: '+U($('frente').value)+(U($('ubic').value)?' / '+U($('ubic').value):''),X0+W/2,y+66,{align:'center'});
+    doc.setLineWidth(0.8);doc.line(X0,y+74,X1,y+74);return y+86};
+  const C=[['N°',0.05],['ELEMENTO',0.16],['CÓDIGO',0.10],['CAPACIDAD',0.09],['ESTADO',0.12],['COLOR MES',0.08],['FOTO N°',0.07],['OBSERVACIÓN',0.33]];
   const xs=[];let acc=X0;C.forEach(c=>{xs.push(acc);acc+=c[1]*W});
   const fs=7.8;let y=head();
   const hdr=()=>{doc.setFillColor(191,191,191);doc.rect(X0,y,W,14,'F');doc.setFont('tah','bold');doc.setFontSize(7.6);C.forEach((c,i)=>doc.text(c[0],xs[i]+c[1]*W/2,y+9.8,{align:'center'}));doc.setLineWidth(0.4);doc.rect(X0,y,W,14);y+=14};
   hdr();
   rows.forEach((z,i)=>{
     doc.setFont('tah','normal');doc.setFontSize(fs);
-    const cells=[String(i+1),z.elemento,z.codigo||'–',z.capacidad||'–',z.estado,z.color,z.observacion||'–'];
+    const cells=[String(i+1),z.elemento,z.codigo||'–',z.capacidad||'–',z.estado,z.color,z.fotos||'–',z.observacion||'–'];
     const wr=cells.map((t,k)=>doc.splitTextToSize(t,C[k][1]*W-6));
     const h=Math.max(16,Math.max(...wr.map(l=>l.length))*fs*1.2+6);
     if(y+h>740){doc.addPage('letter','p');y=head();hdr()}
     wr.forEach((ls,k)=>{const red=k===4&&z.estado==='DAR DE BAJA',org=k===4&&z.estado==='OBSERVADO',nc=k===5&&z.color==='NO';
       doc.setFont('tah',(red||org||nc)?'bold':'normal');doc.setTextColor(red||nc?200:(org?200:0),red||nc?30:(org?110:0),red||nc?30:0);
-      const ty=y+(h-ls.length*fs*1.2)/2+fs*0.9;ls.forEach((l,j)=>doc.text(l,k===6?xs[k]+3:xs[k]+C[k][1]*W/2,ty+j*fs*1.2,k===6?undefined:{align:'center'}))});
+      const ty=y+(h-ls.length*fs*1.2)/2+fs*0.9;ls.forEach((l,j)=>doc.text(l,k===7?xs[k]+3:xs[k]+C[k][1]*W/2,ty+j*fs*1.2,k===7?undefined:{align:'center'}))});
     doc.setTextColor(0);doc.setLineWidth(0.3);doc.rect(X0,y,W,h);xs.slice(1).forEach(x=>doc.line(x,y,x,y+h));y+=h;
   });
   y+=14;if(y>700){doc.addPage('letter','p');y=head()}
@@ -648,7 +662,12 @@ $('gen').onclick=async()=>{
       const k=i%PER;
       if(k===0){doc.addPage('a4','p');photoHeader(doc,i/PER+1,n)}
       msg('Procesando foto '+(i+1)+' de '+photos.length+'…');
-      try{const d=await cellJpg(photos[i].url);doc.addImage(d,'JPEG',MX+(k%2)*(CW+GX),TOP+Math.floor(k/2)*(CH+GY),CW,CH,undefined,'FAST')}catch(e){bad++}
+      try{const d=await cellJpg(photos[i].url),cx=MX+(k%2)*(CW+GX),cy=TOP+Math.floor(k/2)*(CH+GY);doc.addImage(d,'JPEG',cx,cy,CW,CH,undefined,'FAST');
+        const zi=photos[i].z?iz.findIndex(z=>z.u===photos[i].z):-1;
+        if(zi>=0){const z=iz[zi],lab=(i+1)+' · ELEMENTO '+(zi+1)+': '+(z.e==='OTRO'&&U(z.x)?U(z.x):U(z.e))+(U(z.c)?' '+U(z.c):'')+' · '+U(z.s);
+          doc.setFillColor(255,255,255);doc.rect(cx,cy+CH-14,CW,14,'F');doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(z.s==='DAR DE BAJA'?200:0,z.s==='DAR DE BAJA'?30:0,z.s==='DAR DE BAJA'?30:0);
+          doc.text(doc.splitTextToSize(lab,CW-8)[0],cx+4,cy+CH-4.5);doc.setTextColor(0)}
+      }catch(e){bad++}
       bar.style.width=((i+1)/photos.length*100)+'%';
       if(i%4===3)await new Promise(r=>setTimeout(r,0));
     }
