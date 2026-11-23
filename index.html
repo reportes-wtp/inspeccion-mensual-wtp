@@ -106,7 +106,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-vis
   <div class="brand"><img id="lb" alt="Bechtel"><img id="lp" alt="PEMS"><button class="btn" id="nueva" type="button">Nueva inspección</button></div>
   <h1>INSPECCIÓN DE EQUIPOS</h1>
   <p>Llena los datos, observaciones y faltantes, y agrega las fotos. Sale un solo PDF: OT + reporte fotográfico.</p>
-  <div class="ver">Inspección de Equipos · v1.12.3 · Bechtel · Yanacocha WTP</div>
+  <div class="ver">Inspección de Equipos · v1.13.7 · Bechtel · Yanacocha WTP</div>
 </header>
 <main>
   <section class="card">
@@ -163,6 +163,12 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-vis
 
   <section class="card" id="izCard" hidden>
     <h2>Elementos de izaje inspeccionados</h2>
+    <div class="g" style="margin-bottom:12px">
+      <div><label for="cmar">Camión – Marca</label><input type="text" id="cmar" placeholder="VOLVO, INTERNATIONAL…"></div>
+      <div><label for="cmod">Camión – Modelo</label><input type="text" id="cmod" placeholder="FMX 460"></div>
+      <div><label for="pmar">Pluma / grúa – Marca</label><input type="text" id="pmar" placeholder="PALFINGER, HIAB, TADANO…"></div>
+      <div><label for="pmod">Pluma / grúa – Modelo</label><input type="text" id="pmod" placeholder="PK 23500"></div>
+    </div>
     <div id="izl"></div>
     <button class="btn" id="addIz" type="button">+ Agregar elemento</button>
     <p class="hint">Registra cada estrobo, eslinga, grillete, gancho… con su código, capacidad, estado y si tiene la cinta de color del mes. Toma la foto de cada elemento con su botón 📷: va primero en el reporte fotográfico, con el número del elemento.</p>
@@ -222,8 +228,15 @@ const PLANT_G={"CAMION BARANDA": "VEHICULO", "TRACTO": "VEHICULO", "CAMION GRUA"
 const tplFor=eq=>{if(isIzaje())return PLANT_T.IZAJE;const e=(eq||'').toUpperCase();const R=[[/CISTERNA.*COMB/,'CISTERNA'],[/CAMION.*GRUA|GRUA.*CAMION/,'CAMION GRUA'],[/COMPRES/,'COMPRESOR'],[/SUMERG/,'SUMERGIBLE'],[/BOMBA/,'BOMBA'],[/TERMOFUS|ELECTROFUS|FUSION/,'FUSION'],[/SOLDAD|ALIMENTADOR/,'SOLDADURA'],[/TORRE|ILUMINAC/,'TORRE'],[/GENERADOR|GRUPO ELECTR/,'GENERADOR'],[/MANLIFT|SCISSOR|TIJERA|ELEVADOR|PLATAFORMA/,'ELEVADOR'],[/EXCAVADORA|RETRO|CARGADOR|RODILLO|MONTACARGA|TELEHANDLER|GRUA|TRACTOR|MOTONIVEL|BULLDOZER/,'MAQUINARIA'],[/CONTENEDOR|CONTAINER/,'CONTENEDOR'],[/CAMION|CAMIONETA|CISTERNA|TRACTO|VOLQUETE|BUS|MINIBUS|VEHICULO/,'VEHICULO'],[/VIBRO|PISON|COMPACTADORA|MEZCLADORA|CORTADORA|WINCHE|PORTABOBINA|FLOTADOR|PLUMA/,'MENOR']];const g=PLANT_G[e]||((R.find(r=>r[0].test(e))||[])[1]);return g?PLANT_T[g]:PLANTILLA};
 const esPlantilla=t=>{t=(t||'').trim();return !t||t===PLANTILLA.trim()||Object.values(PLANT_T).some(x=>x.trim()===t)};
 const isIzaje=()=>/IZAJE/.test(trabajoVal());
+const izKind=()=>{const e=U($('equipo').value);return /GRUA/.test(e)&&/CAMION/.test(e)?'CG':/GRUA/.test(e)?'GT':'OT'};
+const izLab=()=>({CG:'CAMIÓN',GT:'GRÚA',OT:'EQUIPO'})[izKind()];
+const conPluma=()=>izKind()==='CG';
+function izMarcaUI(){const k=izKind(),L={CG:'Camión',GT:'Grúa',OT:'Equipo'}[k];
+  document.querySelector('label[for="cmar"]').textContent=L+' – Marca';document.querySelector('label[for="cmod"]').textContent=L+' – Modelo';
+  for(const id of ['pmar','pmod']){const el=$(id);el.disabled=!conPluma();if(!conPluma()){el.value='';el.placeholder='N/A'}else el.placeholder=id==='pmar'?'PALFINGER, HIAB, TADANO…':'PK 23500'}}
+const marcaTxt=()=>{const j=(a,b)=>[U($(a).value),U($(b).value)].filter(Boolean).join(' ');const c=j('cmar','cmod'),p=conPluma()?j('pmar','pmod'):'';return [c?izLab()+': '+c:'',p?'PLUMA: '+p:''].filter(Boolean).join('   ·   ')};
 const aplicarPlantilla=()=>{if(esPlantilla($('desc').value)){$('desc').value=tplFor($('equipo').value);saveDraft()}};
-const F=['trabsel','trabajo','equipo','bien','horo','estado','frente','unidad','tipo','ubic','desc','fini','hini','ffin','hfin','sup','mat','eqest'];
+const F=['cmar','cmod','pmar','pmod','trabsel','trabajo','equipo','bien','horo','estado','frente','unidad','tipo','ubic','desc','fini','hini','ffin','hfin','sup','mat','eqest'];
 const CARGO={'ENRIQUE CORTES':'SUPERINTENDENTE DE MANTENIMIENTO','JUAN CAMPOS':'SUPERVISOR GENERAL DE MANTENIMIENTO','JAVIER FRY':'GERENTE DE EQUIPOS','WILLIAM MONTESINOS':'SUBGERENTE DE EQUIPOS'};
 const TIPO_DE=s=>/IZAJE/.test(s)?'IZAJE':/DESMOVILIZ/.test(s)?'DESMOVILIZACION':/INGRESO/.test(s)?'INGRESO':/MENSUAL/.test(s)?'MENSUAL':/TRIMESTRAL/.test(s)?'TRIMESTRAL':/DIARIA/.test(s)?'DIARIA':null;
 const $=id=>document.getElementById(id);
@@ -254,8 +267,8 @@ function eqInfo(){
   const b=U($('bien').value),r=master.find(x=>x[1]===b);
   $('eqinfo').textContent=r?('✓ '+r[0]+(r[2]&&r[2]!=='-'?' · Placa '+r[2]:'')+(r[3]&&r[3]!=='-'?' · Serie '+r[3]:'')):(b?'Código no está en el master (se guardará igual).':(($('equipo').value?master.filter(x=>x[0]===$('equipo').value).length+' equipos de este tipo. ':'')+'Elige el equipo y luego el N° de bien, o escribe el código directo.'));
 }
-$('equipo').addEventListener('change',()=>{const r=master.find(x=>x[1]===U($('bien').value));if(r&&r[0]!==$('equipo').value)$('bien').value='';fillBienes();aplicarPlantilla()});
-$('bien').addEventListener('input',()=>{const r=master.find(x=>x[1]===U($('bien').value));if(r&&$('equipo').value!==r[0]){$('equipo').value=r[0];fillBienes();aplicarPlantilla()}eqInfo()});
+$('equipo').addEventListener('change',()=>{const r=master.find(x=>x[1]===U($('bien').value));if(r&&r[0]!==$('equipo').value)$('bien').value='';fillBienes();aplicarPlantilla();izMarcaUI()});
+$('bien').addEventListener('input',()=>{const r=master.find(x=>x[1]===U($('bien').value));if(r&&$('equipo').value!==r[0]){$('equipo').value=r[0];fillBienes();aplicarPlantilla();izMarcaUI()}eqInfo()});
 async function syncMaster(){
   if(!navigator.onLine)return;
   try{const r=await fetch(SHEET_URL,{method:'POST',body:JSON.stringify({accion:'master'})});const j=await r.json();
@@ -305,7 +318,7 @@ function sortPhotos(){const ord=new Map(iz.map((z,i)=>[z.u,i]));const a=photos.f
 function addZFiles(i,list){const z=iz[i];if(!z)return;const imgs=[...list].filter(f=>f.type.startsWith('image/')||/\.(jpe?g|png|heic|webp)$/i.test(f.name));
   imgs.slice(0,MAX-photos.length).forEach(f=>photos.push({id:++uid,file:f,url:URL.createObjectURL(f),z:z.u}));sortPhotos();renderIz();render();msg('Foto agregada al elemento '+(i+1)+'. Va como foto N° '+(photos.indexOf(zPh(z)[0])+1)+' del reporte.')}
 document.addEventListener('change',e=>{if(e.target.classList&&e.target.classList.contains('fiz')){addZFiles(+e.target.dataset.zi,e.target.files);e.target.value=''}});
-function izUpd(){$('izCard').hidden=!isIzaje()}
+function izUpd(){$('izCard').hidden=!isIzaje();izMarcaUI()}
 const izRows=()=>iz.filter(z=>U(z.c)||U(z.o)||z.e).map(z=>({fotos:zPh(z).map(p=>photos.indexOf(p)+1).join(', '),elemento:z.e==='OTRO'&&U(z.x)?U(z.x):U(z.e),codigo:U(z.c),capacidad:U(z.k),estado:U(z.s),color:U(z.m),observacion:U(z.o)}));
 function izResumen(){const r=izRows();return{n:r.length,b:r.filter(x=>x.estado==='BUENO').length,o:r.filter(x=>x.estado==='OBSERVADO').length,d:r.filter(x=>x.estado==='DAR DE BAJA').length,sc:r.filter(x=>x.color==='NO').length}}
 $('addIz').onclick=()=>{const p=iz[iz.length-1];iz.push({e:p?p.e:'ESTROBO DE CABLE',c:'',k:'',s:'BUENO',m:'SÍ',o:''});renderIz();saveDraft();const l=$('izl').lastElementChild;l&&l.querySelector('input').focus()};
@@ -445,7 +458,8 @@ const OBS_FS=8,OBS_LH=OBS_FS*1.25;
 function obsLists(){
   const o=obs.map(U).filter(Boolean),f=falt.filter(x=>U(x.d));
   let oo=o.length?o.map((x,i)=>(i+1)+'. '+x):['SIN OBSERVACIONES.'];
-  if(isIzaje()&&izRows().length){const r=izResumen();oo=['ELEMENTOS DE IZAJE: '+r.n+' INSPECCIONADOS – '+r.b+' BUENOS, '+r.o+' OBSERVADOS, '+r.d+' PARA DAR DE BAJA, '+r.sc+' SIN COLOR DEL MES. VER REGISTRO ADJUNTO.'].concat(o.length?oo:[])}
+  if(isIzaje()&&marcaTxt())oo=['EQUIPO – '+marcaTxt()+'.'].concat(o.length?oo:[]);
+  if(isIzaje()&&izRows().length){const r=izResumen();{const sum='ELEMENTOS DE IZAJE: '+r.n+' INSPECCIONADOS – '+r.b+' BUENOS, '+r.o+' OBSERVADOS, '+r.d+' PARA DAR DE BAJA, '+r.sc+' SIN COLOR DEL MES. VER REGISTRO ADJUNTO.';oo=(marcaTxt()?[oo[0],sum]:[sum]).concat(o.length?o.map((x,i)=>(i+1)+'. '+x):[])}}
   return{o:oo,
          f:f.map(x=>'- '+U(x.d)+(x.c?' ('+x.c+')':'')+(U(x.m)?' – '+U(x.m):''))};
 }
@@ -472,44 +486,63 @@ function annexPage(doc){
   if(f.length)sect('PIEZAS / ACCESORIOS DE SEGURIDAD FALTANTES:',f);
 }
 function izajePage(doc){
-  const X0=40,X1=572,W=X1-X0,TOPF=36,BOTF=756,SIG=74,rows=izRows(),r=izResumen();
+  const X0=40,X1=572,W=X1-X0,TOPF=36,BOTF=756,SIG=78,rows=izRows(),r=izResumen();
   const sup=U($('sup').value),cargo=CARGO[sup]||'RESPONSABLE',ins=(trabTxt().split('\n')[0]||'');
   const frame=()=>{doc.setDrawColor(0);doc.setLineWidth(0.8);doc.rect(X0,TOPF,W,BOTF-TOPF)};
-  const head=()=>{let y=TOPF;const lh=44;doc.setDrawColor(0);doc.setTextColor(0);
+  let y;
+  const band=t=>{doc.setFillColor(191,191,191);doc.rect(X0,y,W,13,'F');doc.setLineWidth(0.4);doc.line(X0,y,X1,y);doc.line(X0,y+13,X1,y+13);
+    doc.setFont('tah','bold');doc.setFontSize(8);doc.setTextColor(0);doc.text(t,X0+W/2,y+9.3,{align:'center'});y+=13};
+  const head=()=>{y=TOPF;const lh=44;doc.setDrawColor(0);doc.setTextColor(0);
     doc.addImage(LOGO_B,'JPEG',X0+8,y+8,lh*LOGO_B_R,lh);const ph=42,pw=ph*LOGO_P_R;doc.addImage(LOGO_P,'JPEG',X1-8-pw,y+9,pw,ph);
-    doc.setFont('tah','bold');doc.setFontSize(13);doc.text('REGISTRO DE ELEMENTOS DE IZAJE',X0+W/2,y+33,{align:'center'});
-    doc.setFont('tah','normal');doc.setFontSize(7.8);doc.text('EQUIPO: '+U($('equipo').value)+'   ·   N° DE BIEN: '+U($('bien').value)+'   ·   FECHA: '+fdate($('fini').value)+'   ·   FRENTE: '+U($('frente').value)+(U($('ubic').value)?' / '+U($('ubic').value):''),X0+W/2,y+64,{align:'center'});
-    doc.setLineWidth(0.6);doc.line(X0,y+72,X1,y+72);return y+72};
-  const C=[['N°',0.05],['ELEMENTO',0.16],['CÓDIGO',0.10],['CAPACIDAD',0.09],['ESTADO',0.12],['COLOR MES',0.08],['FOTO N°',0.07],['OBSERVACIÓN',0.33]];
+    doc.setFont('tah','bold');doc.setFontSize(13);doc.text('REGISTRO DE ELEMENTOS DE IZAJE',X0+W/2,y+36,{align:'center'});
+    y+=62;doc.setLineWidth(0.6);doc.line(X0,y,X1,y)};
+  const j2=(a,b)=>[U($(a).value),U($(b).value)].filter(Boolean).join(' ')||'–';
+  const info=()=>{band('DATOS DEL EQUIPO');
+    const rowsI=[['EQUIPO',U($('equipo').value)||'–','N° DE BIEN',U($('bien').value)||'–'],
+      ['FECHA',fdate($('fini').value)||'–','FRENTE / UBICACIÓN',[U($('frente').value),U($('ubic').value)].filter(Boolean).join(' / ')||'–'],
+      [izLab()+' (MARCA / MODELO)',j2('cmar','cmod'),'PLUMA (MARCA / MODELO)',conPluma()?j2('pmar','pmod'):'N/A']];
+    const R=19,cx=[X0,X0+W*0.20,X0+W*0.50,X0+W*0.70],y0=y,n=rowsI.length;
+    doc.setFillColor(238,240,242);doc.rect(cx[0],y0,W*0.20,R*n,'F');doc.rect(cx[2],y0,W*0.20,R*n,'F');
+    rowsI.forEach((rr,k)=>{const yy=y0+k*R;
+      doc.setFont('tah','bold');doc.setFontSize(6.9);doc.setTextColor(40);doc.text(rr[0],cx[0]+5,yy+R/2+2.6);doc.text(rr[2],cx[2]+5,yy+R/2+2.6);
+      doc.setFont('tah','normal');doc.setFontSize(8.6);doc.setTextColor(0);
+      doc.text(doc.splitTextToSize(rr[1],W*0.28)[0],cx[1]+W*0.15,yy+R/2+3,{align:'center'});doc.text(doc.splitTextToSize(rr[3],W*0.28)[0],cx[3]+W*0.15,yy+R/2+3,{align:'center'})});
+    doc.setLineWidth(0.3);doc.setDrawColor(150);for(let k=1;k<=n;k++)doc.line(X0,y0+k*R,X1,y0+k*R);cx.slice(1).forEach(x=>doc.line(x,y0,x,y0+R*n));
+    doc.setDrawColor(0);y=y0+R*n};
+  const C=[['N°',0.05],['ELEMENTO',0.16],['CÓDIGO',0.10],['CAPACIDAD',0.09],['ESTADO',0.12],['C. MES',0.08],['FOTO N°',0.07],['OBSERVACIÓN',0.33]];
   const xs=[];let acc=X0;C.forEach(c=>{xs.push(acc);acc+=c[1]*W});
-  const fs=7.8;let y=head();
-  const hdr=()=>{doc.setFillColor(191,191,191);doc.rect(X0,y,W,14,'F');doc.setFont('tah','bold');doc.setFontSize(6.8);doc.setTextColor(0);C.forEach((c,i)=>doc.text(c[0],xs[i]+c[1]*W/2,y+9.8,{align:'center'}));doc.setLineWidth(0.4);doc.line(X0,y+14,X1,y+14);xs.slice(1).forEach(x=>doc.line(x,y,x,y+14));y+=14};
-  hdr();
+  const fs=8;
+  const hdr=()=>{doc.setFillColor(225,228,230);doc.rect(X0,y,W,17,'F');doc.setFont('tah','bold');doc.setFontSize(7.2);doc.setTextColor(0);C.forEach((c,i)=>doc.text(c[0],xs[i]+c[1]*W/2,y+11.2,{align:'center'}));doc.setLineWidth(0.3);doc.setDrawColor(150);doc.line(X0,y+17,X1,y+17);xs.slice(1).forEach(x=>doc.line(x,y,x,y+17));doc.setDrawColor(0);y+=17};
+  head();y+=10;info();y+=14;band('ELEMENTOS INSPECCIONADOS');hdr();
   rows.forEach((z,i)=>{
     doc.setFont('tah','normal');doc.setFontSize(fs);
     const cells=[String(i+1),z.elemento,z.codigo||'–',z.capacidad||'–',z.estado,z.color,z.fotos||'–',z.observacion||'–'];
-    const wr=cells.map((t,k)=>doc.splitTextToSize(t,C[k][1]*W-6));
-    const h=Math.max(16,Math.max(...wr.map(l=>l.length))*fs*1.2+6);
-    if(y+h>BOTF-SIG-4){frame();doc.addPage('letter','p');y=head();hdr()}
+    const wr=cells.map((t,k)=>doc.splitTextToSize(t,C[k][1]*W-8));
+    const h=Math.max(21,Math.max(...wr.map(l=>l.length))*fs*1.25+10);
+    if(y+h>BOTF-SIG-10){frame();doc.addPage('letter','p');head();y+=10;band('ELEMENTOS INSPECCIONADOS (CONT.)');hdr()}
     wr.forEach((ls,k)=>{const red=k===4&&z.estado==='DAR DE BAJA',org=k===4&&z.estado==='OBSERVADO',nc=k===5&&z.color==='NO';
-      doc.setFont('tah',(red||org||nc)?'bold':'normal');doc.setTextColor(red||nc?200:(org?200:0),red||nc?30:(org?110:0),red||nc?30:0);
-      const ty=y+(h-ls.length*fs*1.2)/2+fs*0.9;ls.forEach((l,j)=>doc.text(l,k===7?xs[k]+3:xs[k]+C[k][1]*W/2,ty+j*fs*1.2,k===7?undefined:{align:'center'}))});
-    doc.setTextColor(0);doc.setLineWidth(0.3);doc.line(X0,y+h,X1,y+h);xs.slice(1).forEach(x=>doc.line(x,y,x,y+h));y+=h;
+      doc.setFont('tah',(red||org||nc)?'bold':'normal');doc.setFontSize(fs);doc.setTextColor(red||nc?200:(org?200:0),red||nc?30:(org?110:0),red||nc?30:0);
+      const ty=y+(h-ls.length*fs*1.25)/2+fs*0.92;ls.forEach((l,jj)=>doc.text(l,k===7?xs[k]+5:xs[k]+C[k][1]*W/2,ty+jj*fs*1.25,k===7?undefined:{align:'center'}))});
+    doc.setTextColor(0);doc.setLineWidth(0.3);doc.setDrawColor(150);doc.line(X0,y+h,X1,y+h);xs.slice(1).forEach(x=>doc.line(x,y,x,y+h));doc.setDrawColor(0);y+=h;
   });
-  // resumen
-  const RH=86;if(y+RH>BOTF-SIG){frame();doc.addPage('letter','p');y=head()}
-  doc.setFillColor(191,191,191);doc.rect(X0,y,W,12,'F');doc.setLineWidth(0.4);doc.line(X0,y,X1,y);doc.line(X0,y+12,X1,y+12);
-  doc.setFont('tah','bold');doc.setFontSize(8);doc.text('RESUMEN',X0+W/2,y+8.8,{align:'center'});y+=24;
-  doc.setFontSize(8.6);
-  [['Elementos inspeccionados',r.n],['Buenos',r.b],['Observados',r.o],['Para dar de baja',r.d],['Sin color del mes',r.sc]].forEach(([a,b])=>{doc.setFont('tah','normal');doc.text(a+':',X0+10,y);doc.setFont('tah','bold');doc.text(String(b),X0+160,y);y+=11});
-  doc.setFont('tah','normal');doc.setFontSize(7.4);doc.setTextColor(80);
-  doc.text(doc.splitTextToSize('Los elementos OBSERVADOS o PARA DAR DE BAJA deben retirarse de uso, identificarse y reportarse al supervisor. Ver fotos adjuntas.',W/2-30),X0+W/2+10,y-44);doc.setTextColor(0);
-  // firmas (al pie, como la OT)
-  let fy=BOTF-SIG;doc.setFillColor(191,191,191);doc.rect(X0,fy,W,12,'F');doc.setLineWidth(0.4);doc.line(X0,fy,X1,fy);
-  doc.setFont('tah','bold');doc.setFontSize(8);doc.setTextColor(0);doc.text('FIRMA DE RESPONSABLES',X0+W/2,fy+8.8,{align:'center'});fy+=12;
-  [['INSPECTOR / TRABAJADOR',ins],[cargo,sup]].forEach(([lab,nm],i)=>{const half=W/2,bx=X0+i*half,ly=BOTF-17;
-    doc.setLineWidth(0.4);doc.line(bx+22,ly,bx+half-22,ly);
-    doc.setFont('tah','normal');doc.setFontSize(7);doc.text(nm,bx+half/2,ly+7,{align:'center'});doc.setFont('tah','bold');doc.text(lab,bx+half/2,ly+14.5,{align:'center'})});
+  // resumen en recuadros
+  const RH=13+50+28;if(y+16+RH>BOTF-SIG){frame();doc.addPage('letter','p');head();y+=10}
+  y+=16;band('RESUMEN');
+  const K=[['INSPECCIONADOS',r.n,[0,0,0]],['BUENOS',r.b,[33,140,77]],['OBSERVADOS',r.o,[200,110,0]],['PARA DAR DE BAJA',r.d,[200,30,30]],['SIN COLOR DEL MES',r.sc,[200,30,30]]];
+  const kw=W/K.length,kh=50;
+  K.forEach((k,i)=>{const bx=X0+i*kw;doc.setFont('tah','bold');doc.setFontSize(20);doc.setTextColor(...(k[1]?k[2]:[150,150,150]));doc.text(String(k[1]),bx+kw/2,y+27,{align:'center'});
+    doc.setFontSize(6.8);doc.setTextColor(70);doc.text(k[0],bx+kw/2,y+41,{align:'center'});if(i)doc.setDrawColor(190),doc.setLineWidth(0.3),doc.line(bx,y+8,bx,y+kh-6)});
+  doc.setDrawColor(0);doc.setTextColor(0);y+=kh;doc.setLineWidth(0.3);doc.setDrawColor(150);doc.line(X0,y,X1,y);doc.setDrawColor(0);
+  doc.setFont('tah','normal');doc.setFontSize(7.4);doc.setTextColor(90);doc.text('Ver fotos adjuntas.',X0+W/2,y+14,{align:'center'});doc.setTextColor(0);
+  // nota de alcance (arriba de firmas)
+  {const nota='NOTA: La presente inspección es realizada por BEO y corresponde a una verificación visual del estado de los elementos de izaje a la fecha indicada. La selección, inspección pre-uso, uso y maniobra de cada elemento son responsabilidad del área de Construcción y de su personal calificado (rigger / operador), conforme al plan de izaje y procedimientos vigentes. BEO no se responsabiliza por eventos derivados de maniobras incorrectas, uso inadecuado o condiciones posteriores a esta inspección.';
+   doc.setFont('helvetica','italic');doc.setFontSize(7.4);doc.setTextColor(110);const ls=doc.splitTextToSize(nota,W-24);const ny=BOTF-SIG-8-ls.length*7.4*1.25;
+   ls.forEach((l,k)=>doc.text(l,X0+12,ny+k*7.4*1.25));doc.setTextColor(0)}
+  // firmas al pie
+  y=BOTF-SIG;band('FIRMA DE RESPONSABLES');
+  [['INSPECTOR / TRABAJADOR',ins],[cargo,sup]].forEach(([lab,nm],i)=>{const half=W/2,bx=X0+i*half,ly=BOTF-18;
+    doc.setLineWidth(0.4);doc.line(bx+28,ly,bx+half-28,ly);
+    doc.setFont('tah','normal');doc.setFontSize(7.2);doc.text(nm,bx+half/2,ly+7.5,{align:'center'});doc.setFont('tah','bold');doc.text(lab,bx+half/2,ly+15,{align:'center'})});
   frame();
 }
 // ===== Formato OT original (Excel): marco 86–525 pt, letra tipo Tahoma =====
@@ -593,7 +626,7 @@ function record(v,nf,name){
   const o0=0;const o=obs.map(U).filter(Boolean),f=falt.filter(x=>U(x.d)).map(x=>({pieza:U(x.d),cantidad:x.c,comentario:U(x.m)}));
   return{id:otId,registro:new Date().toISOString(),trabajo:v.trabajo,estado:v.estado,equipo:v.equipo,bien:v.bien,tipo:v.tipo,frente:v.frente,ubicacion:v.ubic,horometro:v.horo,unidad:v.unidad,
     fecha_inicio:fdate(fi),hora_inicio:v.hini,fecha_termino:fdate(ff),hora_final:v.hfin,duracion_h:dur,descripcion:v.desc,trabajadores:tr.join(', '),supervisor:v.sup+(CARGO[v.sup]?' – '+CARGO[v.sup]:''),materiales:v.mat,
-    observaciones:o.map((x,i)=>(i+1)+'. '+x).join('\n'),n_observaciones:o.length,guia:'',faltantes_txt:f.map(x=>x.pieza+(x.cantidad?' ('+x.cantidad+')':'')).join(', '),n_faltantes:f.length,faltantes:f,izaje:isIzaje()?izRows():[],n_izaje:isIzaje()?izRows().length:0,
+    observaciones:isIzaje()?obsLists().o.join('\n'):o.map((x,i)=>(i+1)+'. '+x).join('\n'),n_observaciones:o.length,guia:'',faltantes_txt:f.map(x=>x.pieza+(x.cantidad?' ('+x.cantidad+')':'')).join(', '),n_faltantes:f.length,faltantes:f,izaje:isIzaje()?izRows():[],n_izaje:isIzaje()?izRows().length:0,
     estado_equipo:v.eqest,n_fotos:nf,archivo:name,base:BASE,ruta:RUTA,carpeta:RUTA+'/'+BASE};
 }
 const b64=blob=>new Promise(r=>{const f=new FileReader();f.onload=()=>r(String(f.result).split(',')[1]||'');f.onerror=()=>r('');f.readAsDataURL(blob)});
