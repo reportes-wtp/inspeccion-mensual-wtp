@@ -101,7 +101,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-vis
   <div class="brand"><img id="lb" alt="Bechtel"><img id="lp" alt="PEMS"><button class="btn" id="nueva" type="button">Nueva inspección</button></div>
   <h1>INSPECCIÓN DE EQUIPOS</h1>
   <p>Llena los datos, observaciones y faltantes, y agrega las fotos. Sale un solo PDF: OT + reporte fotográfico.</p>
-  <div class="ver">Inspección de Equipos · v1.9.0 · Bechtel · Yanacocha WTP</div>
+  <div class="ver">Inspección de Equipos · v1.10.0 · Bechtel · Yanacocha WTP</div>
 </header>
 <main>
   <section class="card">
@@ -239,7 +239,7 @@ function fillBienes(){
 }
 function eqInfo(){
   const b=U($('bien').value),r=master.find(x=>x[1]===b);
-  $('eqinfo').textContent=r?('✓ '+r[0]+(r[2]?' · Placa/serie '+r[2]:'')):(b?'Código no está en el master (se guardará igual).':(($('equipo').value?master.filter(x=>x[0]===$('equipo').value).length+' equipos de este tipo. ':'')+'Elige el equipo y luego el N° de bien, o escribe el código directo.'));
+  $('eqinfo').textContent=r?('✓ '+r[0]+(r[2]&&r[2]!=='-'?' · Placa '+r[2]:'')+(r[3]&&r[3]!=='-'?' · Serie '+r[3]:'')):(b?'Código no está en el master (se guardará igual).':(($('equipo').value?master.filter(x=>x[0]===$('equipo').value).length+' equipos de este tipo. ':'')+'Elige el equipo y luego el N° de bien, o escribe el código directo.'));
 }
 $('equipo').addEventListener('change',()=>{const r=master.find(x=>x[1]===U($('bien').value));if(r&&r[0]!==$('equipo').value)$('bien').value='';fillBienes();aplicarPlantilla()});
 $('bien').addEventListener('input',()=>{const r=master.find(x=>x[1]===U($('bien').value));if(r&&$('equipo').value!==r[0]){$('equipo').value=r[0];fillBienes();aplicarPlantilla()}eqInfo()});
@@ -247,8 +247,8 @@ async function syncMaster(){
   if(!navigator.onLine)return;
   try{const r=await fetch(SHEET_URL,{method:'POST',body:JSON.stringify({accion:'master'})});const j=await r.json();
     if(j&&j.ok&&Array.isArray(j.rows)&&j.rows.length>20){
-      const v=(o,k)=>{if(Array.isArray(o))return o[k];const ks=Object.keys(o);const want=[['EQUIPO'],['N° BIEN','N°BIEN','N BIEN','BIEN'],['PLACA']][k];const f=ks.find(x=>want.includes(x.trim().toUpperCase()));return f?o[f]:''};
-      const m=j.rows.map(x=>[U(String(v(x,0)||'')),U(String(v(x,1)||'')),U(String(v(x,2)||''))]).filter(x=>x[0]&&x[1]&&x[0]!=='UNDEFINED');
+      const v=(o,k)=>{if(Array.isArray(o))return o[k];const ks=Object.keys(o);const want=[['EQUIPO'],['N° BIEN','N°BIEN','N BIEN','BIEN'],['PLACA'],['SERIE','N° SERIE','NRO SERIE','NUMERO DE SERIE','N° DE SERIE']][k];const f=ks.find(x=>want.includes(x.trim().toUpperCase()));return f?o[f]:''};
+      const m=j.rows.map(x=>[U(String(v(x,0)||'')),U(String(v(x,1)||'')),U(String(v(x,2)||'')),U(String(v(x,3)||''))]).filter(x=>x[0]&&x[1]&&x[0]!=='UNDEFINED');
       if(m.length>20){master=m;store.set('master',JSON.stringify(master));fillEquipos();fillBienes()}}}catch(e){}
 }
 
