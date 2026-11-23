@@ -106,7 +106,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-vis
   <div class="brand"><img id="lb" alt="Bechtel"><img id="lp" alt="PEMS"><button class="btn" id="nueva" type="button">Nueva inspección</button></div>
   <h1>INSPECCIÓN DE EQUIPOS</h1>
   <p>Llena los datos, observaciones y faltantes, y agrega las fotos. Sale un solo PDF: OT + reporte fotográfico.</p>
-  <div class="ver">Inspección de Equipos · v1.15.1 · Bechtel · Yanacocha WTP</div>
+  <div class="ver">Inspección de Equipos · v1.15.3 · Bechtel · Yanacocha WTP</div>
 </header>
 <main>
   <section class="card">
@@ -503,8 +503,8 @@ function izajePage(doc){
   const j2=(a,b)=>[U($(a).value),U($(b).value)].filter(Boolean).join(' ')||'–';
   const info=()=>{band('DATOS DEL EQUIPO');
     const rowsI=[['EQUIPO',U($('equipo').value)||'–','N° DE BIEN',U($('bien').value)||'–'],
-      ['FECHA',fdate($('fini').value)||'–','FRENTE / UBICACIÓN',[U($('frente').value),U($('ubic').value)].filter(Boolean).join(' / ')||'–'],
-      [izLab()+' (MARCA / MODELO)',j2('cmar','cmod'),'PLUMA (MARCA / MODELO)',conPluma()?j2('pmar','pmod'):'N/A']];
+      [izLab()+' (MARCA / MODELO)',j2('cmar','cmod'),'PLUMA (MARCA / MODELO)',conPluma()?j2('pmar','pmod'):'N/A'],
+      ['FECHA',fdate($('fini').value)||'–','FRENTE / UBICACIÓN',[U($('frente').value),U($('ubic').value)].filter(Boolean).join(' / ')||'–']];
     const R=19,cx=[X0,X0+W*0.20,X0+W*0.50,X0+W*0.70],y0=y,n=rowsI.length;
     doc.setFillColor(238,240,242);doc.rect(cx[0],y0,W*0.20,R*n,'F');doc.rect(cx[2],y0,W*0.20,R*n,'F');
     rowsI.forEach((rr,k)=>{const yy=y0+k*R;
@@ -752,6 +752,10 @@ if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceW
 loadMasterCache();fillEquipos();loadDraft();
 fillBienes();trabUpd();renderObs();renderFalt();renderIz();izUpd();renderTrab();fillLists();render();
 const setMax=()=>{for(const id of ['fini','ffin'])$(id).max=today()};setMax();setInterval(setMax,60000);
+for(const id of ['fini','ffin'])$(id).addEventListener('change',()=>{const el=$(id);if(el.value&&el.value>today()){el.value=today();el.classList.add('bad');msg('No se puede elegir una fecha posterior a hoy. Se colocó la fecha de hoy.',true);saveDraft()}
+  if(id==='fini'&&$('ffin').value&&$('ffin').value<el.value)$('ffin').value=el.value});
+for(const id of ['hini','hfin'])$(id).addEventListener('change',()=>{const el=$(id),d=$(id==='hini'?'fini':'ffin').value||$('fini').value,n=new Date();
+  if(el.value&&d===today()&&el.value>String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0')){el.classList.add('bad');msg('La hora no puede ser posterior a la hora actual ('+n.toTimeString().slice(0,5)+').',true)}});
 setTimeout(()=>{flush();syncMaster();subirFotos()},1200);
 }
 </script>
