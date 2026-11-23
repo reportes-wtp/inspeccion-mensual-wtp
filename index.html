@@ -106,7 +106,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-vis
   <div class="brand"><img id="lb" alt="Bechtel"><img id="lp" alt="PEMS"><button class="btn" id="nueva" type="button">Nueva inspección</button></div>
   <h1>INSPECCIÓN DE EQUIPOS</h1>
   <p>Llena los datos, observaciones y faltantes, y agrega las fotos. Sale un solo PDF: OT + reporte fotográfico.</p>
-  <div class="ver">Inspección de Equipos · v1.13.7 · Bechtel · Yanacocha WTP</div>
+  <div class="ver">Inspección de Equipos · v1.14.1 · Bechtel · Yanacocha WTP</div>
 </header>
 <main>
   <section class="card">
@@ -231,6 +231,7 @@ const isIzaje=()=>/IZAJE/.test(trabajoVal());
 const izKind=()=>{const e=U($('equipo').value);return /GRUA/.test(e)&&/CAMION/.test(e)?'CG':/GRUA/.test(e)?'GT':'OT'};
 const izLab=()=>({CG:'CAMIÓN',GT:'GRÚA',OT:'EQUIPO'})[izKind()];
 const conPluma=()=>izKind()==='CG';
+function fillMarca(){const r=master.find(x=>x[1]===U($('bien').value));if(!r)return;const set=(id,val)=>{const el=$(id);const nv=(val&&!/^(-|N\/?A)$/.test(val))?val:'';if(nv||el.dataset.auto==='1'){el.value=nv;el.dataset.auto=nv?'1':''}};set('cmar',r[4]);set('cmod',r[5]);if(conPluma()){set('pmar',r[6]);set('pmod',r[7])}}
 function izMarcaUI(){const k=izKind(),L={CG:'Camión',GT:'Grúa',OT:'Equipo'}[k];
   document.querySelector('label[for="cmar"]').textContent=L+' – Marca';document.querySelector('label[for="cmod"]').textContent=L+' – Modelo';
   for(const id of ['pmar','pmod']){const el=$(id);el.disabled=!conPluma();if(!conPluma()){el.value='';el.placeholder='N/A'}else el.placeholder=id==='pmar'?'PALFINGER, HIAB, TADANO…':'PK 23500'}}
@@ -265,16 +266,16 @@ function fillBienes(){
 }
 function eqInfo(){
   const b=U($('bien').value),r=master.find(x=>x[1]===b);
-  $('eqinfo').textContent=r?('✓ '+r[0]+(r[2]&&r[2]!=='-'?' · Placa '+r[2]:'')+(r[3]&&r[3]!=='-'?' · Serie '+r[3]:'')):(b?'Código no está en el master (se guardará igual).':(($('equipo').value?master.filter(x=>x[0]===$('equipo').value).length+' equipos de este tipo. ':'')+'Elige el equipo y luego el N° de bien, o escribe el código directo.'));
+  $('eqinfo').textContent=r?('✓ '+r[0]+(r[2]&&!/^(-|N\/?A)$/.test(r[2])?' · Placa '+r[2]:'')+(r[3]&&!/^(-|N\/?A)$/.test(r[3])?' · Serie '+r[3]:'')):(b?'Código no está en el master (se guardará igual).':(($('equipo').value?master.filter(x=>x[0]===$('equipo').value).length+' equipos de este tipo. ':'')+'Elige el equipo y luego el N° de bien, o escribe el código directo.'));
 }
 $('equipo').addEventListener('change',()=>{const r=master.find(x=>x[1]===U($('bien').value));if(r&&r[0]!==$('equipo').value)$('bien').value='';fillBienes();aplicarPlantilla();izMarcaUI()});
-$('bien').addEventListener('input',()=>{const r=master.find(x=>x[1]===U($('bien').value));if(r&&$('equipo').value!==r[0]){$('equipo').value=r[0];fillBienes();aplicarPlantilla();izMarcaUI()}eqInfo()});
+$('bien').addEventListener('input',()=>{const r=master.find(x=>x[1]===U($('bien').value));if(r&&$('equipo').value!==r[0]){$('equipo').value=r[0];fillBienes();aplicarPlantilla();izMarcaUI()}fillMarca();eqInfo()});
 async function syncMaster(){
   if(!navigator.onLine)return;
   try{const r=await fetch(SHEET_URL,{method:'POST',body:JSON.stringify({accion:'master'})});const j=await r.json();
     if(j&&j.ok&&Array.isArray(j.rows)&&j.rows.length>20){
-      const v=(o,k)=>{if(Array.isArray(o))return o[k];const ks=Object.keys(o);const want=[['EQUIPO'],['N° BIEN','N°BIEN','N BIEN','BIEN'],['PLACA'],['SERIE','N° SERIE','NRO SERIE','NUMERO DE SERIE','N° DE SERIE']][k];const f=ks.find(x=>want.includes(x.trim().toUpperCase()));return f?o[f]:''};
-      const m=j.rows.map(x=>[U(String(v(x,0)||'')),U(String(v(x,1)||'')),U(String(v(x,2)||'')),U(String(v(x,3)||''))]).filter(x=>x[0]&&x[1]&&x[0]!=='UNDEFINED');
+      const v=(o,k)=>{if(Array.isArray(o))return o[k];const ks=Object.keys(o);const want=[['EQUIPO'],['N° BIEN','N°BIEN','N BIEN','BIEN'],['PLACA'],['SERIE','N° SERIE','NRO SERIE','NUMERO DE SERIE','N° DE SERIE'],['MARCA','MARCA EQUIPO','MARCA CAMION','MARCA CAMIÓN'],['MODELO','MODELO EQUIPO','MODELO CAMION','MODELO CAMIÓN'],['MARCA PLUMA','PLUMA MARCA','MARCA DE PLUMA'],['MODELO PLUMA','PLUMA MODELO','MODELO DE PLUMA']][k];const f=ks.find(x=>want.includes(x.trim().toUpperCase()));return f?o[f]:''};
+      const m=j.rows.map(x=>[0,1,2,3,4,5,6,7].map(k=>U(String(v(x,k)||'')))).filter(x=>x[0]&&x[1]&&x[0]!=='UNDEFINED');
       if(m.length>20){master=m;store.set('master',JSON.stringify(master));fillEquipos();fillBienes()}}}catch(e){}
 }
 
@@ -367,6 +368,7 @@ document.querySelector('main').addEventListener('input',e=>{
   else if(t.dataset.t!=null){trabs[+t.dataset.t]=t.value}
   else if(t.dataset.f){const[i,k]=t.dataset.f.split('.');falt[+i][k]=t.value}
   else if(t.dataset.z){const[i,k]=t.dataset.z.split('.');iz[+i][k]=t.value;if(k==='e'){renderIz();saveDraft()}}
+  if(['cmar','cmod','pmar','pmod'].includes(t.id))t.dataset.auto='';
   t.classList.remove('bad');clearTimeout(st);st=setTimeout(saveDraft,300);upd();
 });
 document.querySelector('main').addEventListener('change',()=>{saveDraft();upd()});
