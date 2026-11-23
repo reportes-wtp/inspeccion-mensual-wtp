@@ -106,7 +106,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-vis
   <div class="brand"><img id="lb" alt="Bechtel"><img id="lp" alt="PEMS"><button class="btn" id="nueva" type="button">Nueva inspección</button></div>
   <h1>INSPECCIÓN DE EQUIPOS</h1>
   <p>Llena los datos, observaciones y faltantes, y agrega las fotos. Sale un solo PDF: OT + reporte fotográfico.</p>
-  <div class="ver">Inspección de Equipos · v1.12.1 · Bechtel · Yanacocha WTP</div>
+  <div class="ver">Inspección de Equipos · v1.12.3 · Bechtel · Yanacocha WTP</div>
 </header>
 <main>
   <section class="card">
@@ -427,7 +427,6 @@ function photoHeader(doc,p,n){
   doc.setFont('helvetica','normal');doc.setFontSize(15);doc.setTextColor(0);
   doc.text('REPORTE FOTOGRÁFICO',PW/2,42,{align:'center'});
   doc.setDrawColor(0);doc.setLineWidth(0.8);doc.line(MX,58,PW-MX,58);
-  doc.setFontSize(8);doc.text('Página '+p+' de '+n,PW/2,PH-22,{align:'center'});
 }
 function boxText(doc,t,x,y,w,h,opt){
   opt=opt||{};let fs=opt.fs||8;t=t||'';
@@ -473,32 +472,45 @@ function annexPage(doc){
   if(f.length)sect('PIEZAS / ACCESORIOS DE SEGURIDAD FALTANTES:',f);
 }
 function izajePage(doc){
-  const X0=40,X1=572,W=X1-X0,rows=izRows(),r=izResumen();
-  const head=()=>{let y=36;const lh=44;doc.setDrawColor(0);doc.setTextColor(0);doc.setLineWidth(0.6);
-    doc.addImage(LOGO_B,'JPEG',X0+8,y+8,lh*LOGO_B_R,lh);const pw=lh*LOGO_P_R*0.95;doc.addImage(LOGO_P,'JPEG',X1-8-pw,y+9,pw,lh*0.95);
+  const X0=40,X1=572,W=X1-X0,TOPF=36,BOTF=756,SIG=74,rows=izRows(),r=izResumen();
+  const sup=U($('sup').value),cargo=CARGO[sup]||'RESPONSABLE',ins=(trabTxt().split('\n')[0]||'');
+  const frame=()=>{doc.setDrawColor(0);doc.setLineWidth(0.8);doc.rect(X0,TOPF,W,BOTF-TOPF)};
+  const head=()=>{let y=TOPF;const lh=44;doc.setDrawColor(0);doc.setTextColor(0);
+    doc.addImage(LOGO_B,'JPEG',X0+8,y+8,lh*LOGO_B_R,lh);const ph=42,pw=ph*LOGO_P_R;doc.addImage(LOGO_P,'JPEG',X1-8-pw,y+9,pw,ph);
     doc.setFont('tah','bold');doc.setFontSize(13);doc.text('REGISTRO DE ELEMENTOS DE IZAJE',X0+W/2,y+33,{align:'center'});
-    doc.setFont('tah','normal');doc.setFontSize(8);doc.text('EQUIPO: '+U($('equipo').value)+'   ·   N° DE BIEN: '+U($('bien').value)+'   ·   FECHA: '+fdate($('fini').value)+'   ·   FRENTE: '+U($('frente').value)+(U($('ubic').value)?' / '+U($('ubic').value):''),X0+W/2,y+66,{align:'center'});
-    doc.setLineWidth(0.8);doc.line(X0,y+74,X1,y+74);return y+86};
+    doc.setFont('tah','normal');doc.setFontSize(7.8);doc.text('EQUIPO: '+U($('equipo').value)+'   ·   N° DE BIEN: '+U($('bien').value)+'   ·   FECHA: '+fdate($('fini').value)+'   ·   FRENTE: '+U($('frente').value)+(U($('ubic').value)?' / '+U($('ubic').value):''),X0+W/2,y+64,{align:'center'});
+    doc.setLineWidth(0.6);doc.line(X0,y+72,X1,y+72);return y+72};
   const C=[['N°',0.05],['ELEMENTO',0.16],['CÓDIGO',0.10],['CAPACIDAD',0.09],['ESTADO',0.12],['COLOR MES',0.08],['FOTO N°',0.07],['OBSERVACIÓN',0.33]];
   const xs=[];let acc=X0;C.forEach(c=>{xs.push(acc);acc+=c[1]*W});
   const fs=7.8;let y=head();
-  const hdr=()=>{doc.setFillColor(191,191,191);doc.rect(X0,y,W,14,'F');doc.setFont('tah','bold');doc.setFontSize(7.6);C.forEach((c,i)=>doc.text(c[0],xs[i]+c[1]*W/2,y+9.8,{align:'center'}));doc.setLineWidth(0.4);doc.rect(X0,y,W,14);y+=14};
+  const hdr=()=>{doc.setFillColor(191,191,191);doc.rect(X0,y,W,14,'F');doc.setFont('tah','bold');doc.setFontSize(6.8);doc.setTextColor(0);C.forEach((c,i)=>doc.text(c[0],xs[i]+c[1]*W/2,y+9.8,{align:'center'}));doc.setLineWidth(0.4);doc.line(X0,y+14,X1,y+14);xs.slice(1).forEach(x=>doc.line(x,y,x,y+14));y+=14};
   hdr();
   rows.forEach((z,i)=>{
     doc.setFont('tah','normal');doc.setFontSize(fs);
     const cells=[String(i+1),z.elemento,z.codigo||'–',z.capacidad||'–',z.estado,z.color,z.fotos||'–',z.observacion||'–'];
     const wr=cells.map((t,k)=>doc.splitTextToSize(t,C[k][1]*W-6));
     const h=Math.max(16,Math.max(...wr.map(l=>l.length))*fs*1.2+6);
-    if(y+h>740){doc.addPage('letter','p');y=head();hdr()}
+    if(y+h>BOTF-SIG-4){frame();doc.addPage('letter','p');y=head();hdr()}
     wr.forEach((ls,k)=>{const red=k===4&&z.estado==='DAR DE BAJA',org=k===4&&z.estado==='OBSERVADO',nc=k===5&&z.color==='NO';
       doc.setFont('tah',(red||org||nc)?'bold':'normal');doc.setTextColor(red||nc?200:(org?200:0),red||nc?30:(org?110:0),red||nc?30:0);
       const ty=y+(h-ls.length*fs*1.2)/2+fs*0.9;ls.forEach((l,j)=>doc.text(l,k===7?xs[k]+3:xs[k]+C[k][1]*W/2,ty+j*fs*1.2,k===7?undefined:{align:'center'}))});
-    doc.setTextColor(0);doc.setLineWidth(0.3);doc.rect(X0,y,W,h);xs.slice(1).forEach(x=>doc.line(x,y,x,y+h));y+=h;
+    doc.setTextColor(0);doc.setLineWidth(0.3);doc.line(X0,y+h,X1,y+h);xs.slice(1).forEach(x=>doc.line(x,y,x,y+h));y+=h;
   });
-  y+=14;if(y>700){doc.addPage('letter','p');y=head()}
-  doc.setFont('tah','bold');doc.setFontSize(9);doc.text('RESUMEN',X0,y);y+=13;doc.setFont('tah','normal');doc.setFontSize(8.6);
-  [['Elementos inspeccionados',r.n],['Buenos',r.b],['Observados',r.o],['Para dar de baja',r.d],['Sin color del mes',r.sc]].forEach(([a,b])=>{doc.text(a+':',X0+6,y);doc.setFont('tah','bold');doc.text(String(b),X0+150,y);doc.setFont('tah','normal');y+=12});
-  y+=4;doc.setFontSize(7.5);doc.setTextColor(90);doc.text('Los elementos OBSERVADOS o PARA DAR DE BAJA deben retirarse de uso, identificarse y reportarse al supervisor. Ver fotos adjuntas.',X0,y);doc.setTextColor(0);
+  // resumen
+  const RH=86;if(y+RH>BOTF-SIG){frame();doc.addPage('letter','p');y=head()}
+  doc.setFillColor(191,191,191);doc.rect(X0,y,W,12,'F');doc.setLineWidth(0.4);doc.line(X0,y,X1,y);doc.line(X0,y+12,X1,y+12);
+  doc.setFont('tah','bold');doc.setFontSize(8);doc.text('RESUMEN',X0+W/2,y+8.8,{align:'center'});y+=24;
+  doc.setFontSize(8.6);
+  [['Elementos inspeccionados',r.n],['Buenos',r.b],['Observados',r.o],['Para dar de baja',r.d],['Sin color del mes',r.sc]].forEach(([a,b])=>{doc.setFont('tah','normal');doc.text(a+':',X0+10,y);doc.setFont('tah','bold');doc.text(String(b),X0+160,y);y+=11});
+  doc.setFont('tah','normal');doc.setFontSize(7.4);doc.setTextColor(80);
+  doc.text(doc.splitTextToSize('Los elementos OBSERVADOS o PARA DAR DE BAJA deben retirarse de uso, identificarse y reportarse al supervisor. Ver fotos adjuntas.',W/2-30),X0+W/2+10,y-44);doc.setTextColor(0);
+  // firmas (al pie, como la OT)
+  let fy=BOTF-SIG;doc.setFillColor(191,191,191);doc.rect(X0,fy,W,12,'F');doc.setLineWidth(0.4);doc.line(X0,fy,X1,fy);
+  doc.setFont('tah','bold');doc.setFontSize(8);doc.setTextColor(0);doc.text('FIRMA DE RESPONSABLES',X0+W/2,fy+8.8,{align:'center'});fy+=12;
+  [['INSPECTOR / TRABAJADOR',ins],[cargo,sup]].forEach(([lab,nm],i)=>{const half=W/2,bx=X0+i*half,ly=BOTF-17;
+    doc.setLineWidth(0.4);doc.line(bx+22,ly,bx+half-22,ly);
+    doc.setFont('tah','normal');doc.setFontSize(7);doc.text(nm,bx+half/2,ly+7,{align:'center'});doc.setFont('tah','bold');doc.text(lab,bx+half/2,ly+14.5,{align:'center'})});
+  frame();
 }
 // ===== Formato OT original (Excel): marco 86–525 pt, letra tipo Tahoma =====
 function regFonts(doc){doc.addFileToVFS('tah.ttf',FONT_R);doc.addFont('tah.ttf','tah','normal');doc.addFileToVFS('tahb.ttf',FONT_B);doc.addFont('tahb.ttf','tah','bold')}
@@ -671,6 +683,8 @@ $('gen').onclick=async()=>{
       bar.style.width=((i+1)/photos.length*100)+'%';
       if(i%4===3)await new Promise(r=>setTimeout(r,0));
     }
+    {const N=doc.getNumberOfPages();for(let q=1;q<=N;q++){doc.setPage(q);const ps=doc.internal.pageSize,w=ps.getWidth(),h=ps.getHeight();
+      doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(0);doc.text('Página '+q+' de '+N,w/2,h-(h>800?22:14),{align:'center'})}}
     const blob=doc.output('blob'),mb=(blob.size/1048576).toFixed(1);
     remember();lastPdf={blob,name};bajar();
     $('share').hidden=!canShare(blob,name);$('again').hidden=false;
