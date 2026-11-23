@@ -106,7 +106,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-vis
   <div class="brand"><img id="lb" alt="Bechtel"><img id="lp" alt="PEMS"><button class="btn" id="nueva" type="button">Nueva inspección</button></div>
   <h1>INSPECCIÓN DE EQUIPOS</h1>
   <p>Llena los datos, observaciones y faltantes, y agrega las fotos. Sale un solo PDF: OT + reporte fotográfico.</p>
-  <div class="ver">Inspección de Equipos · v1.14.2 · Bechtel · Yanacocha WTP</div>
+  <div class="ver">Inspección de Equipos · v1.15.1 · Bechtel · Yanacocha WTP</div>
 </header>
 <main>
   <section class="card">
@@ -228,6 +228,7 @@ const PLANT_G={"CAMION BARANDA": "VEHICULO", "TRACTO": "VEHICULO", "CAMION GRUA"
 const tplFor=eq=>{if(isIzaje())return PLANT_T.IZAJE;const e=String(eq||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');const R=[[/CISTERNA.*COMB/,'CISTERNA'],[/CAMION.*GRUA|GRUA.*CAMION/,'CAMION GRUA'],[/COMPRES/,'COMPRESOR'],[/SUMERG/,'SUMERGIBLE'],[/BOMBA/,'BOMBA'],[/TERMOFUS|ELECTROFUS|FUSION/,'FUSION'],[/SOLDAD|ALIMENTADOR/,'SOLDADURA'],[/TORRE|ILUMINAC/,'TORRE'],[/GENERADOR|GRUPO ELECTR/,'GENERADOR'],[/MANLIFT|SCISSOR|TIJERA|ELEVADOR|PLATAFORMA/,'ELEVADOR'],[/EXCAVADORA|RETRO|CARGADOR|RODILLO|MONTACARGA|TELEHANDLER|GRUA|TRACTOR|MOTONIVEL|BULLDOZER/,'MAQUINARIA'],[/CONTENEDOR|CONTAINER/,'CONTENEDOR'],[/CAMION|CAMIONETA|CISTERNA|TRACTO|VOLQUETE|BUS|MINIBUS|VEHICULO/,'VEHICULO'],[/VIBRO|PISON|COMPACTADORA|MEZCLADORA|CORTADORA|WINCHE|PORTABOBINA|FLOTADOR|PLUMA/,'MENOR']];const g=PLANT_G[e]||((R.find(r=>r[0].test(e))||[])[1]);return g?PLANT_T[g]:PLANTILLA};
 const esPlantilla=t=>{t=(t||'').trim();return !t||t===PLANTILLA.trim()||Object.values(PLANT_T).some(x=>x.trim()===t)};
 const isIzaje=()=>/IZAJE/.test(trabajoVal());
+const isIzEq=n=>/GRUA|PLUMA DE IZAJE/.test(SA(n));
 const SA=x=>String(x||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
 const izKind=()=>{const e=SA($('equipo').value);return /GRUA/.test(e)&&/CAMION/.test(e)?'CG':/GRUA/.test(e)?'GT':'OT'};
 const izLab=()=>({CG:'CAMIÓN',GT:'GRÚA',OT:'EQUIPO'})[izKind()];
@@ -255,13 +256,13 @@ function msg(t,err){$('msg').textContent=t;$('msg').className='msg'+(err?' err':
 // ---------- master de equipos ----------
 function loadMasterCache(){try{const c=JSON.parse(store.get('master')||'null');if(Array.isArray(c)&&c.length)master=c}catch(e){}}
 function fillEquipos(){
-  const cur=$('equipo').value,fams=[...new Set(master.map(r=>r[0]))].sort();
+  const cur=$('equipo').value,fams=[...new Set(master.map(r=>r[0]))].filter(f=>!isIzaje()||isIzEq(f)).sort();
   $('equipo').innerHTML='<option value="">— Elegir —</option>'+fams.map(f=>'<option>'+esc(f)+'</option>').join('');
-  if(cur&&fams.includes(cur))$('equipo').value=cur;
+  if(cur&&fams.includes(cur))$('equipo').value=cur;else if(cur){$('equipo').value='';const r=master.find(x=>x[1]===U($('bien').value));if(r&&!fams.includes(r[0]))$('bien').value=''}
   fillBienes();
 }
 function fillBienes(){
-  const f=$('equipo').value,list=master.filter(r=>!f||r[0]===f);
+  const f=$('equipo').value,list=master.filter(r=>(!f||r[0]===f)&&(!isIzaje()||isIzEq(r[0])));
   $('l_bien').innerHTML=list.map(r=>'<option value="'+esc(r[1])+'">'+esc(r[2]?r[1]+' · '+r[2]+(f?'':' · '+r[0]):r[1]+(f?'':' · '+r[0]))+'</option>').join('');
   eqInfo();
 }
@@ -283,8 +284,8 @@ async function syncMaster(){
 // ---------- trabajo realizado ----------
 function trabajoVal(){return $('trabsel').value==='_'?U($('trabajo').value):$('trabsel').value}
 function trabUpd(){$('trabOtro').hidden=$('trabsel').value!=='_'}
-$('trabsel').addEventListener('change',()=>{trabUpd();izUpd();aplicarPlantilla();const tp=TIPO_DE($('trabsel').value);if(tp)$('tipo').value=tp;if($('trabsel').value==='_')$('trabajo').focus()});
-$('trabajo').addEventListener('input',()=>{izUpd();const tp=TIPO_DE(U($('trabajo').value));if(tp)$('tipo').value=tp});
+$('trabsel').addEventListener('change',()=>{trabUpd();izUpd();fillEquipos();aplicarPlantilla();const tp=TIPO_DE($('trabsel').value);if(tp)$('tipo').value=tp;if($('trabsel').value==='_')$('trabajo').focus()});
+$('trabajo').addEventListener('input',()=>{izUpd();fillEquipos();const tp=TIPO_DE(U($('trabajo').value));if(tp)$('tipo').value=tp});
 
 // ---------- listas: observaciones y faltantes ----------
 function renderObs(){
@@ -616,6 +617,13 @@ function check(){
   if($('trabsel').value==='_'&&!$('trabajo').value.trim()){$('trabajo').classList.add('bad');$('trabajo').focus();msg('Escribe el trabajo realizado.',true);return false}
   const need=[['bien','el N° de bien'],['fini','la fecha de inicio']];
   for(const[k,t]of need)if(!$(k).value.trim()){$(k).classList.add('bad');$(k).scrollIntoView({behavior:'smooth',block:'center'});$(k).focus({preventScroll:true});msg('Falta '+t+'.',true);return false}
+  {const now=new Date(),fi=$('fini').value,ff=$('ffin').value||fi,hi=$('hini').value,hf=$('hfin').value;
+   const dt=(d,h)=>d?new Date(d+'T'+(h||'00:00')):null,a=dt(fi,hi),b=dt(ff,hf),bad=(id,t)=>{$(id).classList.add('bad');$(id).scrollIntoView({behavior:'smooth',block:'center'});msg(t,true);return false};
+   if(a&&a>now)return bad(hi&&fi===today()?'hini':'fini','La fecha/hora de inicio no puede ser posterior a la hora actual ('+now.toTimeString().slice(0,5)+').');
+   if(b&&b>now)return bad(hf&&ff===today()?'hfin':'ffin','La fecha/hora de término no puede ser posterior a la hora actual ('+now.toTimeString().slice(0,5)+').');
+   if(a&&b&&hi&&hf&&b<a)return bad('hfin','La hora final no puede ser anterior a la hora inicial.');
+   if(fi&&ff&&ff<fi)return bad('ffin','La fecha de término no puede ser anterior a la de inicio.');}
+  if(isIzaje()&&$('equipo').value&&!isIzEq($('equipo').value)){$('bien').classList.add('bad');$('bien').scrollIntoView({behavior:'smooth',block:'center'});msg('Para inspección de elementos de izaje elige una grúa, camión grúa o pluma de izaje.',true);return false}
   if(isIzaje()&&!izRows().length){$('izCard').scrollIntoView({behavior:'smooth',block:'center'});msg('Agrega al menos un elemento de izaje.',true);return false}
   return true;
 }
@@ -743,6 +751,7 @@ if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceW
 
 loadMasterCache();fillEquipos();loadDraft();
 fillBienes();trabUpd();renderObs();renderFalt();renderIz();izUpd();renderTrab();fillLists();render();
+const setMax=()=>{for(const id of ['fini','ffin'])$(id).max=today()};setMax();setInterval(setMax,60000);
 setTimeout(()=>{flush();syncMaster();subirFotos()},1200);
 }
 </script>
