@@ -88,6 +88,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-vis
 .it .x{width:44px;padding:0}
 .ft{display:grid;grid-template-columns:minmax(0,2fr) 90px minmax(0,2fr) 44px;gap:8px;padding:10px;border:1px solid var(--line);border-radius:8px;margin-bottom:10px;align-items:end}
 .ft .x{width:44px;padding:0}
+.ft .e{grid-column:1/-1}
 .iz{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:10px;border:1px solid var(--line);border-radius:8px;margin-bottom:10px;align-items:end}
 .iz .c{grid-column:1/3}.iz .x{width:44px;padding:0;justify-self:end}
 .iz .zf{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px;align-items:center}.iz .zf .pick{min-height:44px}.zt{position:relative;width:64px;height:64px;border-radius:6px;overflow:hidden;border:1px solid var(--line)}.zt img{width:100%;height:100%;object-fit:cover}.zt b{position:absolute;left:3px;top:2px;background:#000a;color:#fff;font-size:11px;padding:0 4px;border-radius:4px}.zt button{position:absolute;right:2px;top:2px;width:22px;height:22px;border:0;border-radius:50%;background:#000b;color:#fff;font-size:12px;padding:0;cursor:pointer}
@@ -106,7 +107,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-vis
   <div class="brand"><img id="lb" alt="Bechtel"><img id="lp" alt="PEMS"><button class="btn" id="nueva" type="button">Nueva inspección</button></div>
   <h1>INSPECCIÓN DE EQUIPOS</h1>
   <p>Llena los datos, observaciones y faltantes, y agrega las fotos. Sale un solo PDF: OT + reporte fotográfico.</p>
-  <div class="ver">Inspección de Equipos · v1.15.3 · Bechtel · Yanacocha WTP</div>
+  <div class="ver">Inspección de Equipos · v1.16.0 · Bechtel · Yanacocha WTP</div>
 </header>
 <main>
   <section class="card">
@@ -126,6 +127,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-vis
       <div><label for="estado">Estado de OT</label><select id="estado"><option>CERRADA</option><option>ABIERTA</option></select></div>
       <div><label for="frente">Frente de trabajo</label><select id="frente"><option>ESTE</option><option>OESTE</option><option>CAJAMARCA</option></select></div>
       <div><label for="unidad">Unidad</label><select id="unidad"><option>HR</option><option>KM</option></select></div>
+      <div><label for="comb">Nivel de combustible</label><select id="comb"><option value="">— Elegir —</option><option>VACÍO</option><option>RESERVA</option><option>1/4</option><option>1/2</option><option>3/4</option><option>LLENO</option><option>N/A (EQUIPO ELÉCTRICO / SIN TANQUE)</option></select></div>
       <div><label for="tipo">Tipo de inspección</label><select id="tipo"><option>DESMOVILIZACION</option><option>INGRESO</option><option>MENSUAL</option><option>TRIMESTRAL</option><option>DIARIA</option><option>IZAJE</option></select></div>
       <div><label for="ubic">Ubicación</label><select id="ubic"><option value="">— Elegir —</option><option>PLATAFORMA 1</option><option>PLATAFORMA 2</option><option>PLATAFORMA 3</option><option>PLATAFORMA 4</option><option>PLATAFORMA 5</option><option>CAJAMARCA</option><option>TALLER</option></select></div>
       <div class="full"><p class="hint" id="eqinfo" style="margin:0"></p></div>
@@ -155,10 +157,10 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-vis
   </section>
 
   <section class="card">
-    <h2>Piezas / accesorios de seguridad faltantes</h2>
+    <h2 id="fH">Piezas / accesorios de seguridad faltantes</h2>
     <div id="faltl"></div>
     <button class="btn" id="addFalt" type="button">+ Agregar faltante</button>
-    <p class="hint">Piezas o accesorios que no se encontraron o que no llegaron como indica la guía del proveedor.</p>
+    <p class="hint" id="fHint">Piezas o accesorios que no se encontraron o que no llegaron como indica la guía del proveedor.</p>
   </section>
 
   <section class="card" id="izCard" hidden>
@@ -228,6 +230,13 @@ const PLANT_G={"CAMION BARANDA": "VEHICULO", "TRACTO": "VEHICULO", "CAMION GRUA"
 const tplFor=eq=>{if(isIzaje())return PLANT_T.IZAJE;const e=String(eq||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');const R=[[/CISTERNA.*COMB/,'CISTERNA'],[/CAMION.*GRUA|GRUA.*CAMION/,'CAMION GRUA'],[/COMPRES/,'COMPRESOR'],[/SUMERG/,'SUMERGIBLE'],[/BOMBA/,'BOMBA'],[/TERMOFUS|ELECTROFUS|FUSION/,'FUSION'],[/SOLDAD|ALIMENTADOR/,'SOLDADURA'],[/TORRE|ILUMINAC/,'TORRE'],[/GENERADOR|GRUPO ELECTR/,'GENERADOR'],[/MANLIFT|SCISSOR|TIJERA|ELEVADOR|PLATAFORMA/,'ELEVADOR'],[/EXCAVADORA|RETRO|CARGADOR|RODILLO|MONTACARGA|TELEHANDLER|GRUA|TRACTOR|MOTONIVEL|BULLDOZER/,'MAQUINARIA'],[/CONTENEDOR|CONTAINER/,'CONTENEDOR'],[/CAMION|CAMIONETA|CISTERNA|TRACTO|VOLQUETE|BUS|MINIBUS|VEHICULO/,'VEHICULO'],[/VIBRO|PISON|COMPACTADORA|MEZCLADORA|CORTADORA|WINCHE|PORTABOBINA|FLOTADOR|PLUMA/,'MENOR']];const g=PLANT_G[e]||((R.find(r=>r[0].test(e))||[])[1]);return g?PLANT_T[g]:PLANTILLA};
 const esPlantilla=t=>{t=(t||'').trim();return !t||t===PLANTILLA.trim()||Object.values(PLANT_T).some(x=>x.trim()===t)};
 const isIzaje=()=>/IZAJE/.test(trabajoVal());
+const isIngreso=()=>/INGRESO/.test(trabajoVal());
+const fEst=x=>x.e||'FALTANTE';
+const combTxt=()=>$('comb').value?'NIVEL DE COMBUSTIBLE: '+($('comb').value.startsWith('N/A')?'N/A':$('comb').value)+'.':'';
+const fLine=x=>'- '+U(x.d)+(x.c?' ('+x.c+')':'')+(U(x.m)?' – '+U(x.m):'');
+function faltSecs(){const f=falt.filter(x=>U(x.d));if(!isIngreso())return f.length?[['PIEZAS / ACCESORIOS DE SEGURIDAD FALTANTES:',f.map(fLine)]]:[];
+  const r=f.filter(x=>fEst(x)==='RECIBIDO'),m=f.filter(x=>fEst(x)!=='RECIBIDO');return [r.length?['ACCESORIOS DE SEGURIDAD RECIBIDOS EN OBRA:',r.map(fLine)]:null,m.length?['ACCESORIOS DE SEGURIDAD FALTANTES:',m.map(fLine)]:null].filter(Boolean)}
+function faltUI(){const ing=isIngreso();$('fH').textContent=ing?'Accesorios de seguridad – verificación de ingreso':'Piezas / accesorios de seguridad faltantes';$('addFalt').textContent=ing?'+ Agregar accesorio':'+ Agregar faltante';$('fHint').textContent=ing?'Registra cada accesorio que llega con el equipo (RECIBIDO) y los que no llegaron según la guía (FALTANTE).':'Piezas o accesorios que no se encontraron o que no llegaron como indica la guía del proveedor.';renderFalt()}
 const isIzEq=n=>/GRUA|PLUMA DE IZAJE/.test(SA(n));
 const SA=x=>String(x||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
 const izKind=()=>{const e=SA($('equipo').value);return /GRUA/.test(e)&&/CAMION/.test(e)?'CG':/GRUA/.test(e)?'GT':'OT'};
@@ -239,7 +248,7 @@ function izMarcaUI(){const k=izKind(),L={CG:'Camión',GT:'Grúa',OT:'Equipo'}[k]
   for(const id of ['pmar','pmod']){const el=$(id);el.disabled=!conPluma();if(!conPluma()){el.value='';el.placeholder='N/A'}else el.placeholder=id==='pmar'?'PALFINGER, HIAB, TADANO…':'PK 23500'}}
 const marcaTxt=()=>{const j=(a,b)=>[U($(a).value),U($(b).value)].filter(Boolean).join(' ');const c=j('cmar','cmod'),p=conPluma()?j('pmar','pmod'):'';return [c?izLab()+': '+c:'',p?'PLUMA: '+p:''].filter(Boolean).join('   ·   ')};
 const aplicarPlantilla=()=>{if(esPlantilla($('desc').value)){$('desc').value=tplFor($('equipo').value);saveDraft()}};
-const F=['cmar','cmod','pmar','pmod','trabsel','trabajo','equipo','bien','horo','estado','frente','unidad','tipo','ubic','desc','fini','hini','ffin','hfin','sup','mat','eqest'];
+const F=['comb','cmar','cmod','pmar','pmod','trabsel','trabajo','equipo','bien','horo','estado','frente','unidad','tipo','ubic','desc','fini','hini','ffin','hfin','sup','mat','eqest'];
 const CARGO={'ENRIQUE CORTES':'SUPERINTENDENTE DE MANTENIMIENTO','JUAN CAMPOS':'SUPERVISOR GENERAL DE MANTENIMIENTO','JAVIER FRY':'GERENTE DE EQUIPOS','WILLIAM MONTESINOS':'SUBGERENTE DE EQUIPOS'};
 const TIPO_DE=s=>/IZAJE/.test(s)?'IZAJE':/DESMOVILIZ/.test(s)?'DESMOVILIZACION':/INGRESO/.test(s)?'INGRESO':/MENSUAL/.test(s)?'MENSUAL':/TRIMESTRAL/.test(s)?'TRIMESTRAL':/DIARIA/.test(s)?'DIARIA':null;
 const $=id=>document.getElementById(id);
@@ -284,15 +293,16 @@ async function syncMaster(){
 // ---------- trabajo realizado ----------
 function trabajoVal(){return $('trabsel').value==='_'?U($('trabajo').value):$('trabsel').value}
 function trabUpd(){$('trabOtro').hidden=$('trabsel').value!=='_'}
-$('trabsel').addEventListener('change',()=>{trabUpd();izUpd();fillEquipos();aplicarPlantilla();const tp=TIPO_DE($('trabsel').value);if(tp)$('tipo').value=tp;if($('trabsel').value==='_')$('trabajo').focus()});
-$('trabajo').addEventListener('input',()=>{izUpd();fillEquipos();const tp=TIPO_DE(U($('trabajo').value));if(tp)$('tipo').value=tp});
+$('trabsel').addEventListener('change',()=>{trabUpd();izUpd();faltUI();fillEquipos();aplicarPlantilla();const tp=TIPO_DE($('trabsel').value);if(tp)$('tipo').value=tp;if($('trabsel').value==='_')$('trabajo').focus()});
+$('trabajo').addEventListener('input',()=>{izUpd();faltUI();fillEquipos();const tp=TIPO_DE(U($('trabajo').value));if(tp)$('tipo').value=tp});
 
 // ---------- listas: observaciones y faltantes ----------
 function renderObs(){
   $('obsl').innerHTML=obs.length?obs.map((o,i)=>'<div class="it"><span class="num">'+(i+1)+'</span><textarea data-o="'+i+'" aria-label="Observación '+(i+1)+'" placeholder="Ej.: FUGA LEVE DE ACEITE EN CILINDRO DE LEVANTE">'+esc(o)+'</textarea><button class="btn x" type="button" data-ox="'+i+'" aria-label="Quitar observación">✕</button></div>').join(''):'<p class="hint" style="margin:0 0 10px">Sin observaciones. Si no hay, en el PDF sale "SIN OBSERVACIONES".</p>';
 }
 function renderFalt(){
-  $('faltl').innerHTML=falt.map((f,i)=>'<div class="ft"><div><label>Pieza / accesorio</label><input type="text" data-f="'+i+'.d" value="'+esc(f.d)+'" placeholder="EXTINTOR, LLAVE DE RUEDA…"></div>'+
+  const ing=isIngreso();
+  $('faltl').innerHTML=falt.map((f,i)=>'<div class="ft">'+(ing?'<div class="e"><label>Estado</label><select data-f="'+i+'.e">'+['RECIBIDO','FALTANTE'].map(x=>'<option'+(fEst(f)===x?' selected':'')+'>'+x+'</option>').join('')+'</select></div>':'')+'<div><label>Pieza / accesorio</label><input type="text" data-f="'+i+'.d" value="'+esc(f.d)+'" placeholder="EXTINTOR, LLAVE DE RUEDA…"></div>'+
    '<div><label>Cant.</label><input type="number" min="0" step="any" inputmode="decimal" data-f="'+i+'.c" value="'+esc(f.c)+'"></div>'+
    '<div class="c"><label>Comentario</label><input type="text" data-f="'+i+'.m" value="'+esc(f.m)+'" placeholder="NO LLEGÓ SEGÚN GUÍA"></div>'+
    '<button class="btn x" type="button" data-fx="'+i+'" aria-label="Quitar faltante">✕</button></div>').join('');
@@ -332,7 +342,7 @@ function renderTrab(){
 $('addTrab').onclick=()=>{trabs.push('');renderTrab();saveDraft();const l=$('trabl').lastElementChild;l&&l.querySelector('input').focus()};
 const trabTxt=()=>trabs.map(U).filter(Boolean).join('\n');
 $('addObs').onclick=()=>{obs.push('');renderObs();saveDraft();const t=$('obsl').querySelectorAll('textarea');t[t.length-1].focus()};
-$('addFalt').onclick=()=>{falt.push({d:'',c:'1',m:''});renderFalt();saveDraft();const l=$('faltl').lastElementChild;l&&l.querySelector('input').focus()};
+$('addFalt').onclick=()=>{falt.push({d:'',c:'1',m:'',e:isIngreso()?'RECIBIDO':'FALTANTE'});renderFalt();saveDraft();const l=$('faltl').lastElementChild;l&&l.querySelector('input').focus()};
 document.querySelector('main').addEventListener('click',e=>{
   const a=e.target.closest('[data-ox]'),b=e.target.closest('[data-fx]'),c=e.target.closest('[data-tx]'),z=e.target.closest('[data-zx]');
   if(z){const q=iz[+z.dataset.zx];photos.filter(p=>q&&p.z===q.u).forEach(p=>URL.revokeObjectURL(p.url));photos=photos.filter(p=>!(q&&p.z===q.u));iz.splice(+z.dataset.zx,1);sortPhotos();renderIz();render();saveDraft()}
@@ -419,7 +429,7 @@ $('dSi').onclick=()=>{
   store.del('draft');for(const k of F){const el=$(k);el.value=el.tagName==='SELECT'?el.options[0].value:''}
   $('trabsel').value=keep.trabsel;$('frente').value=keep.frente;$('sup').value=keep.sup;$('tipo').value=keep.tipo;
   $('desc').value=isIzaje()?PLANT_T.IZAJE:PLANTILLA;$('mat').value='NO APLICA';$('fini').value=$('ffin').value=today();
-  obs=[];falt=[];iz=[];otId=newId();renderObs();renderFalt();renderIz();renderTrab();trabUpd();izUpd();fillBienes();
+  obs=[];falt=[];iz=[];otId=newId();renderObs();faltUI();renderIz();renderTrab();trabUpd();izUpd();fillBienes();
   photos.forEach(p=>URL.revokeObjectURL(p.url));photos=[];lastPdf=null;$('share').hidden=$('again').hidden=true;
   saveDraft();$('dlg').classList.remove('on');render();msg('Lista para una nueva inspección (se mantuvieron trabajo, frente y personal).');scrollTo(0,0)};
 
@@ -455,7 +465,8 @@ function boxText(doc,t,x,y,w,h,opt){
 function obsText(){
   const o=obs.map(U).filter(Boolean),f=falt.filter(x=>U(x.d));
   let t=o.length?o.map((x,i)=>(i+1)+'. '+x).join('\n'):'SIN OBSERVACIONES.';
-  if(f.length){t+='\nPIEZAS / ACCESORIOS DE SEGURIDAD FALTANTES:\n'+f.map(x=>'- '+U(x.d)+(x.c?' ('+x.c+')':'')+(U(x.m)?' – '+U(x.m):'')).join('\n');}
+  if(combTxt())t=combTxt()+(o.length?'\n'+t:'');
+  faltSecs().forEach(([h,L])=>{t+='\n'+h+'\n'+L.join('\n')});
   return t;
 }
 const OBS_FS=8,OBS_LH=OBS_FS*1.25;
@@ -464,15 +475,16 @@ function obsLists(){
   let oo=o.length?o.map((x,i)=>(i+1)+'. '+x):['SIN OBSERVACIONES.'];
   if(isIzaje()&&marcaTxt())oo=['EQUIPO – '+marcaTxt()+'.'].concat(o.length?oo:[]);
   if(isIzaje()&&izRows().length){const r=izResumen();{const sum='ELEMENTOS DE IZAJE: '+r.n+' INSPECCIONADOS – '+r.b+' BUENOS, '+r.o+' OBSERVADOS, '+r.d+' PARA DAR DE BAJA, '+r.sc+' SIN COLOR DEL MES. VER REGISTRO ADJUNTO.';oo=(marcaTxt()?[oo[0],sum]:[sum]).concat(o.length?o.map((x,i)=>(i+1)+'. '+x):[])}}
+  if(combTxt())oo=[combTxt()].concat(o.length||isIzaje()?oo:[]);
   return{o:oo,
-         f:f.map(x=>'- '+U(x.d)+(x.c?' ('+x.c+')':'')+(U(x.m)?' – '+U(x.m):''))};
+         f:f.map(fLine),fs:faltSecs()};
 }
 // parte en líneas sin achicar la letra
 function wrapList(doc,items,w,fs){doc.setFont('tah','normal');doc.setFontSize(fs);let out=[];items.forEach(s=>{out=out.concat(doc.splitTextToSize(s,w))});return out}
 function drawLines(doc,lines,x,y,fs,bold0){doc.setFontSize(fs);lines.forEach((l,i)=>{doc.setFont('tah',bold0&&i===0?'bold':'normal');doc.text(l,x,y+fs+i*fs*1.25)})}
 let needAnnex=false;
 function annexPage(doc){
-  const X0=40,X1=572,W=X1-X0,{o,f}=obsLists();
+  const X0=40,X1=572,W=X1-X0,{o,f,fs:FSEC}=obsLists();
   const head=()=>{let y=36;const lh=44;doc.setDrawColor(0);doc.setTextColor(0);doc.setLineWidth(0.6);
     doc.addImage(LOGO_B,'JPEG',X0+8,y+8,lh*LOGO_B_R,lh);const pw=lh*LOGO_P_R*0.95;doc.addImage(LOGO_P,'JPEG',X1-8-pw,y+9,pw,lh*0.95);
     doc.setFont('tah','bold');doc.setFontSize(13);doc.text('ANEXO DE OBSERVACIONES',X0+W/2,y+35,{align:'center'});
@@ -487,7 +499,7 @@ function annexPage(doc){
     y+=lh*0.6;
   };
   sect('OBSERVACIONES ENCONTRADAS:',o);
-  if(f.length)sect('PIEZAS / ACCESORIOS DE SEGURIDAD FALTANTES:',f);
+  FSEC.forEach(([h,L])=>sect(h,L));
 }
 function izajePage(doc){
   const X0=40,X1=572,W=X1-X0,TOPF=36,BOTF=756,SIG=78,rows=izRows(),r=izResumen();
@@ -574,7 +586,7 @@ function otPage(doc,v){
   const band=(t1,t2,h)=>{h=h||11.5;doc.setFillColor(191,191,191);doc.rect(X0,y,W,h,'F');
     if(t2){T(t1,P(0.26),y+h-3.2,{b:1,c:1,fs:8});T(t2,P(0.76),y+h-3.2,{b:1,c:1,fs:8})}else T(t1,P(0.5),y+h-3.2,{b:1,c:1,fs:8});y+=h};
   band('DURACION DE LA TAREA');
-  const dt=(a,b,c,d)=>{T(a,X0+2,base(),{b:1,fs:7.6});T(b,P(0.41),base(),{c:1});T(c,P(0.53),base(),{b:1,fs:9.4});T(d,P(0.91),base(),{c:1});y+=R};
+  const dt=(a,b,c,d)=>{T(a,X0+2,base(),{b:1,fs:7.6});T(b,P(0.41),base(),{c:1});T(c,P(0.53),base(),{b:1,fs:7.6});T(d,P(0.91),base(),{c:1});y+=R};
   dt('FECHA DE INICIO',fdate(v.fini),'FECHA DE TERMINO',fdate(v.ffin));
   dt('HORA INICIAL',v.hini,'HORA FINAL',v.hfin);
   band('FALLA ENCONTRADA','CAUSA DE FALLA');
@@ -588,11 +600,11 @@ function otPage(doc,v){
   h=28;tahBox(doc,v.mat,X0+2,y+3,W-4,h-6,FS);y+=h;
   band('OBSERVACIONES');
   h=756-62-12.8-12-y;{
-    const {o,f}=obsLists(),pad=4,avail=Math.floor((h-2*pad)/(FS*1.25));
+    const {o,f,fs:FSEC}=obsLists(),pad=4,avail=Math.floor((h-2*pad)/(FS*1.25));
     needAnnex=false;
     if(f.length){
-      const cw=W/2-10,lo=wrapList(doc,o,cw,FS),lf=['PIEZAS / ACCESORIOS DE SEGURIDAD FALTANTES:'].concat(wrapList(doc,f,cw,FS));
-      if(lo.length<=avail&&lf.length<=avail){drawLines(doc,lo,X0+3,y+pad,FS);drawLines(doc,lf,X0+W/2+5,y+pad,FS,true);
+      const cw=W/2-10,lo=wrapList(doc,o,cw,FS);let lf=[],hb=[];FSEC.forEach(([hh,L],k)=>{if(k)lf.push('');hb.push(lf.length);lf.push(hh);lf=lf.concat(wrapList(doc,L,cw,FS))});
+      if(lo.length<=avail&&lf.length<=avail){drawLines(doc,lo,X0+3,y+pad,FS);doc.setFontSize(FS);lf.forEach((l,i)=>{doc.setFont('tah',hb.includes(i)?'bold':'normal');doc.text(l,X0+W/2+5,y+pad+FS+i*FS*1.25)});
         doc.setLineWidth(0.3);doc.line(X0+W/2,y+3,X0+W/2,y+h-3)}else needAnnex=true;
     }else{const lo=wrapList(doc,o,W-8,FS);if(lo.length<=avail)drawLines(doc,lo,X0+3,y+pad,FS);else needAnnex=true}
     if(needAnnex){drawLines(doc,wrapList(doc,o,W-8,FS).slice(0,avail-2),X0+3,y+pad,FS);T('… VER ANEXO DE OBSERVACIONES (HOJA SIGUIENTE)',X0+3,y+h-pad-2,{b:1})}
@@ -623,6 +635,7 @@ function check(){
    if(b&&b>now)return bad(hf&&ff===today()?'hfin':'ffin','La fecha/hora de término no puede ser posterior a la hora actual ('+now.toTimeString().slice(0,5)+').');
    if(a&&b&&hi&&hf&&b<a)return bad('hfin','La hora final no puede ser anterior a la hora inicial.');
    if(fi&&ff&&ff<fi)return bad('ffin','La fecha de término no puede ser anterior a la de inicio.');}
+  if(!$('comb').value){$('comb').classList.add('bad');$('comb').scrollIntoView({behavior:'smooth',block:'center'});msg('Elige el nivel de combustible (o N/A si el equipo no tiene tanque).',true);return false}
   if(isIzaje()&&$('equipo').value&&!isIzEq($('equipo').value)){$('bien').classList.add('bad');$('bien').scrollIntoView({behavior:'smooth',block:'center'});msg('Para inspección de elementos de izaje elige una grúa, camión grúa o pluma de izaje.',true);return false}
   if(isIzaje()&&!izRows().length){$('izCard').scrollIntoView({behavior:'smooth',block:'center'});msg('Agrega al menos un elemento de izaje.',true);return false}
   return true;
@@ -634,10 +647,10 @@ function record(v,nf,name){
   const tr=v.trab.split('\n').filter(x=>x.trim());
   const BASE=clean([v.bien,(v.trabajo||'').replace(/\s+/g,'_'),fdate(fi).replace(/\//g,'-')].filter(Boolean).join('_'))+'_'+(/^INS-\d{8}-\d{6}$/.test(otId)?otId.slice(13,17):otId.slice(-4));
   const RUTA=rutaFecha(fi);
-  const o0=0;const o=obs.map(U).filter(Boolean),f=falt.filter(x=>U(x.d)).map(x=>({pieza:U(x.d),cantidad:x.c,comentario:U(x.m)}));
+  const o0=0;const o=obs.map(U).filter(Boolean),f=falt.filter(x=>U(x.d)&&(!isIngreso()||fEst(x)!=='RECIBIDO')).map(x=>({pieza:U(x.d),cantidad:x.c,comentario:U(x.m)})),rec=isIngreso()?falt.filter(x=>U(x.d)&&fEst(x)==='RECIBIDO'):[];
   return{id:otId,registro:new Date().toISOString(),trabajo:v.trabajo,estado:v.estado,equipo:v.equipo,bien:v.bien,tipo:v.tipo,frente:v.frente,ubicacion:v.ubic,horometro:v.horo,unidad:v.unidad,
     fecha_inicio:fdate(fi),hora_inicio:v.hini,fecha_termino:fdate(ff),hora_final:v.hfin,duracion_h:dur,descripcion:v.desc,trabajadores:tr.join(', '),supervisor:v.sup+(CARGO[v.sup]?' – '+CARGO[v.sup]:''),materiales:v.mat,
-    observaciones:isIzaje()?obsLists().o.join('\n'):o.map((x,i)=>(i+1)+'. '+x).join('\n'),n_observaciones:o.length,guia:'',faltantes_txt:f.map(x=>x.pieza+(x.cantidad?' ('+x.cantidad+')':'')).join(', '),n_faltantes:f.length,faltantes:f,izaje:isIzaje()?izRows():[],n_izaje:isIzaje()?izRows().length:0,
+    observaciones:(isIzaje()?obsLists().o.join('\n'):[combTxt()].concat(o.map((x,i)=>(i+1)+'. '+x)).filter(Boolean).join('\n'))+(rec.length?'\nACCESORIOS RECIBIDOS EN OBRA: '+rec.map(x=>U(x.d)+(x.c?' ('+x.c+')':'')).join(', '):''),n_observaciones:o.length,guia:'',faltantes_txt:f.map(x=>x.pieza+(x.cantidad?' ('+x.cantidad+')':'')).join(', '),n_faltantes:f.length,faltantes:f,izaje:isIzaje()?izRows():[],n_izaje:isIzaje()?izRows().length:0,
     estado_equipo:v.eqest,n_fotos:nf,archivo:name,base:BASE,ruta:RUTA,carpeta:RUTA+'/'+BASE};
 }
 const b64=blob=>new Promise(r=>{const f=new FileReader();f.onload=()=>r(String(f.result).split(',')[1]||'');f.onerror=()=>r('');f.readAsDataURL(blob)});
@@ -750,7 +763,7 @@ $('share').onclick=async()=>{if(!lastPdf)return;try{await navigator.share({files
 if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(()=>{});
 
 loadMasterCache();fillEquipos();loadDraft();
-fillBienes();trabUpd();renderObs();renderFalt();renderIz();izUpd();renderTrab();fillLists();render();
+fillBienes();trabUpd();renderObs();faltUI();renderIz();izUpd();renderTrab();fillLists();render();
 const setMax=()=>{for(const id of ['fini','ffin'])$(id).max=today()};setMax();setInterval(setMax,60000);
 for(const id of ['fini','ffin'])$(id).addEventListener('change',()=>{const el=$(id);if(el.value&&el.value>today()){el.value=today();el.classList.add('bad');msg('No se puede elegir una fecha posterior a hoy. Se colocó la fecha de hoy.',true);saveDraft()}
   if(id==='fini'&&$('ffin').value&&$('ffin').value<el.value)$('ffin').value=el.value});
