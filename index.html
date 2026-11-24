@@ -107,7 +107,8 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-vis
   <div class="brand"><img id="lb" alt="Bechtel"><img id="lp" alt="PEMS"><button class="btn" id="nueva" type="button">Nueva inspección</button></div>
   <h1>INSPECCIÓN DE EQUIPOS</h1>
   <p>Llena los datos, observaciones y faltantes, y agrega las fotos. Sale un solo PDF: OT + reporte fotográfico.</p>
-  <div class="ver">Inspección de Equipos · v1.16.0 · Bechtel · Yanacocha WTP</div>
+  <div id="fpend" hidden style="position:sticky;top:0;z-index:50;background:#fff4d6;color:#7a4b00;border:1px solid #f0c36a;border-radius:8px;padding:6px 10px;margin:6px 0;font-weight:700;font-size:14px;text-align:center"></div>
+  <div class="ver">Inspección de Equipos · v1.16.1 · Bechtel · Yanacocha WTP</div>
 </header>
 <main>
   <section class="card">
@@ -689,7 +690,7 @@ async function encolarFotos(rec,list){
   subirFotos();
 }
 let subiendo=false;
-async function subirFotos(){
+async function subirLocal(){
   if(subiendo||!navigator.onLine)return;let lista;try{lista=(await IDB.all()).sort((a,b)=>a.k<b.k?-1:1)}catch(e){return}
   if(!lista.length)return;
   subiendo=true;const total=lista.length;let hechas=0,error=false;
@@ -708,14 +709,39 @@ async function subirFotos(){
       }catch(e){error=true}
     }
   }
-  await Promise.all([worker(),worker()]);
+  await Promise.all([worker(),worker(),worker(),worker()]);
   subiendo=false;
   const quedan=(await IDB.all().catch(()=>[])).length;
   syncMsg(quedan?'📷 '+quedan+' foto(s) pendiente(s) de subir a Drive. Se subirán solas cuando haya señal.':'✓ Fotos subidas a Drive ('+hechas+').');
-  if(!quedan)setTimeout(()=>syncMsg(''),8000);else setTimeout(subirFotos,60000);
+  if(!quedan){wakeOff();contarFotos();setTimeout(()=>syncMsg(''),8000)}else{setTimeout(subirFotos,60000);wakeOff();contarFotos()}
+}
+// ---- pantalla encendida + contador + subida en segundo plano (service worker) ----
+let wl=null;
+async function wakeOn(){try{if('wakeLock' in navigator&&!wl&&document.visibilityState==='visible'){wl=await navigator.wakeLock.request('screen');wl.addEventListener('release',()=>{wl=null})}}catch(e){}}
+function wakeOff(){try{if(wl)wl.release()}catch(e){}wl=null}
+function badge(n){const b=$('fpend');if(!b)return;b.hidden=!n;b.textContent=n?'📷 '+n+' foto'+(n>1?'s':'')+' pendiente'+(n>1?'s':'')+' de subir · no borres los datos de Chrome':''}
+async function contarFotos(){try{badge((await IDB.all()).length)}catch(e){}}
+let reintento=null;
+if('serviceWorker' in navigator)navigator.serviceWorker.addEventListener('message',e=>{const d=e.data||{};if(d.tipo!=='fotos')return;
+  if(!d.fin){wakeOn();badge(d.total-d.hechas);syncMsg('📷 Subiendo fotos: '+d.hechas+' de '+d.total+'… puedes seguir llenando otra inspección');return}
+  contarFotos();
+  if(d.quedan>0){syncMsg('📷 '+d.quedan+' foto(s) pendiente(s). Se subirán solas cuando haya señal.');wakeOff();clearTimeout(reintento);reintento=setTimeout(subirFotos,60000)}
+  else{wakeOff();if(d.total){syncMsg('✓ Fotos subidas a Drive ('+d.hechas+').');setTimeout(()=>syncMsg(''),8000)}}
+});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')subirFotos()});
+async function subirFotos(){
+  await contarFotos();
+  if(!navigator.onLine)return;
+  const sw=('serviceWorker' in navigator)&&navigator.serviceWorker.controller;
+  if(!sw)return subirLocal();
+  let n=0;try{n=(await IDB.all()).length}catch(e){}
+  if(!n)return;
+  wakeOn();syncMsg('📷 Subiendo fotos: 0 de '+n+'…');
+  sw.postMessage({tipo:'subir',url:SHEET_URL});
+  try{const reg=await navigator.serviceWorker.ready;if(reg.sync)await reg.sync.register('insp-fotos')}catch(e){}
 }
 $('gen').onclick=async()=>{
-  if(busy||!check())return;
+  if(busy||!check())return;wakeOn();
   if(!window.jspdf){msg('No cargó el generador de PDF. Revisa tu conexión y recarga la página.',true);return}
   busy=true;upd();$('prog').style.display='block';const bar=$('prog').firstElementChild;
   const name=fname();
@@ -747,14 +773,14 @@ $('gen').onclick=async()=>{
     $('share').hidden=!canShare(blob,name);$('again').hidden=false;
     const base='PDF listo: '+name+' ('+mb+' MB)'+(bad?' · '+bad+' foto(s) no se pudieron leer':'');
     msg(base+' · Guardando en la base…');
-    const rec=record(v,photos.length,name);let pdf='';
+    const rec=record(v,photos.length,name);const pF=photos.length?encolarFotos(rec,photos.slice()):null;let pdf='';
     if(blob.size<25*1048576)pdf=await b64(blob);
     const ok=await send({...rec,pdf});
     if(!ok)queue(rec);else store.set('queue',JSON.stringify(pend().filter(x=>x.id!==rec.id)));
     msg(base+(ok?' · ✓ Guardado en la base':' · Sin conexión: se guardará cuando haya señal ('+pend().length+' pendiente'+(pend().length>1?'s':'')+')'),!ok||!!bad);
-    if(photos.length)await encolarFotos(rec,photos.slice());
+    if(pF)await pF;
   }catch(e){msg('No se pudo generar el PDF: '+(e&&e.message||e),true)}
-  finally{busy=false;$('prog').style.display='none';bar.style.width='0';upd()}
+  finally{busy=false;$('prog').style.display='none';bar.style.width='0';upd();contarFotos().then(()=>{if($('fpend').hidden)wakeOff()})}
 };
 function bajar(){if(!lastPdf)return;const u=URL.createObjectURL(lastPdf.blob),a=document.createElement('a');a.href=u;a.download=lastPdf.name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),60000)}
 function canShare(b,n){try{return !!(navigator.canShare&&navigator.canShare({files:[new File([b],n,{type:'application/pdf'})]}))}catch(e){return false}}
